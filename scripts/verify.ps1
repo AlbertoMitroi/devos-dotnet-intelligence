@@ -10,8 +10,8 @@ $user = if ($IsLinux -or $IsMacOS) { "$(id -u):$(id -g)" } else { $null }
 
 function Step([string] $name) { Write-Host "`n== $name" }
 
-function Invoke-Docker {
-    param([Parameter(ValueFromRemainingArguments)] [string[]] $Arguments)
+# Arguments are passed as one array, so docker flags such as -r or -t are never bound by PowerShell.
+function Invoke-Docker([string[]] $Arguments) {
     & docker @Arguments
     if ($LASTEXITCODE -ne 0) { throw "docker $($Arguments -join ' ') failed with exit code $LASTEXITCODE" }
 }
@@ -22,11 +22,11 @@ if (Test-Path $work) { Remove-Item -Recurse -Force $work }
 New-Item -ItemType Directory -Force -Path (Join-Path $work 'repos'), (Join-Path $work 'out') | Out-Null
 
 Step 'test stage'
-Invoke-Docker build --target test -t "$tag-test" $root
+Invoke-Docker @('build', '--target', 'test', '-t', "$tag-test", $root)
 
 Step 'runtime and action images'
-Invoke-Docker build --target runtime -t $tag $root
-Invoke-Docker build --target action -t "$tag-action" $root
+Invoke-Docker @('build', '--target', 'runtime', '-t', $tag, $root)
+Invoke-Docker @('build', '--target', 'action', '-t', "$tag-action", $root)
 
 Step 'self-test'
 $version = & docker run --rm --network none $tag version --json
@@ -44,7 +44,7 @@ foreach ($fixture in Get-ChildItem -Directory (Join-Path $root 'tests/fixtures')
     $arguments = @('run', '--rm') + (UserArgs) + @('-e', 'HOME=/tmp', '--entrypoint', 'bash',
         '-v', "$(Join-Path $root 'tests/fixtures'):/fixtures:ro", '-v', "$(Join-Path $work 'repos'):/repos",
         $tag, '/opt/dotnet-intelligence/scripts/fixture-repo.sh', "/fixtures/$($fixture.Name)", "/repos/$($fixture.Name)")
-    Invoke-Docker @arguments
+    Invoke-Docker $arguments
 }
 
 Step 'fixture analyses'
@@ -60,7 +60,7 @@ foreach ($repo in Get-ChildItem -Directory (Join-Path $work 'repos')) {
         if (-not (Test-Path (Join-Path $out 'manifest.json'))) { throw "analyze $name run ${run}: no manifest" }
     }
     # Byte comparison inside the image, so the check is the same on every host.
-    Invoke-Docker run --rm --entrypoint diff -v "$(Join-Path $work 'out'):/runs:ro" $tag -r -x run.json "/runs/$name-1" "/runs/$name-2"
+    Invoke-Docker @('run', '--rm', '--entrypoint', 'diff', '-v', "$(Join-Path $work 'out'):/runs:ro", $tag, '-r', '-x', 'run.json', "/runs/$name-1", "/runs/$name-2")
     Write-Host "${name}: two runs identical"
 }
 
