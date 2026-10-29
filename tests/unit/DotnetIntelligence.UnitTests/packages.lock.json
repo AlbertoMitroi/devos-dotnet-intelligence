@@ -287,7 +287,8 @@
       "dotnetintelligence.adapters": {
         "type": "Project",
         "dependencies": {
-          "DotnetIntelligence.Analysis": "[0.1.0, )"
+          "DotnetIntelligence.Analysis": "[0.1.0, )",
+          "YamlDotNet": "[18.1.0, )"
         }
       },
       "dotnetintelligence.analysis": {

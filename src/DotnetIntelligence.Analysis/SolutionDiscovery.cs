@@ -147,14 +147,14 @@ public static partial class SolutionDiscovery
     }
 
     /// <summary>Resolves a path written relative to a file's directory into a normalized repository-relative path.</summary>
-    internal static string ResolveRelative(string fromFile, string relative)
+    public static string ResolveRelative(string fromFile, string relative)
     {
         var directory = Path.GetDirectoryName(fromFile.Replace('\\', '/'))?.Replace('\\', '/') ?? string.Empty;
         var combined = directory.Length == 0 ? relative.Replace('\\', '/') : directory + "/" + relative.Replace('\\', '/');
         return NormalizeRelative(combined);
     }
 
-    internal static string NormalizeRelative(string path)
+    public static string NormalizeRelative(string path)
     {
         var parts = new List<string>();
         foreach (var part in path.Replace('\\', '/').Split('/'))

@@ -129,12 +129,27 @@ public class AnalyzeEndToEndTests : IDisposable
         await File.WriteAllTextAsync(config, "conventions: []\n");
         var output = Path.Combine(_repos.Root, "out");
 
-        Assert.Equal(ExitCodes.Complete, (await RunCli(["analyze", "--src", repo, "--out", output, "--config", config], Environment())).Code);
+        // No recognized section: a warning, so the generation is partial.
+        Assert.Equal(ExitCodes.Partial, (await RunCli(["analyze", "--src", repo, "--out", output, "--config", config], Environment())).Code);
 
         var manifest = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(output, "manifest.json")))!;
         Assert.Equal(Hashing.Sha256Hex("conventions: []\n"), (string?)manifest["configurationHash"]);
         Assert.Contains(File.ReadLines(Path.Combine(output, "graph/diagnostics.ndjson")),
             l => JsonDocument.Parse(l).RootElement.GetProperty("code").GetString() == "configuration-not-applied");
+    }
+
+    [Fact]
+    public async Task Recognized_conventions_are_reported_as_applied()
+    {
+        var (repo, _) = await _repos.FromFixtureAsync("f00-minimal");
+        var config = Path.Combine(_repos.Root, "conventions.yml");
+        await File.WriteAllTextAsync(config, "messaging:\n  publish:\n    - method: Minimal.Greeter.Greet\n      eventArgument: 0\n");
+        var output = Path.Combine(_repos.Root, "out");
+
+        Assert.Equal(ExitCodes.Complete, (await RunCli(["analyze", "--src", repo, "--out", output, "--config", config], Environment())).Code);
+
+        Assert.Contains(File.ReadLines(Path.Combine(output, "graph/diagnostics.ndjson")),
+            l => JsonDocument.Parse(l).RootElement.GetProperty("code").GetString() == "configuration-applied");
     }
 
     [Fact]

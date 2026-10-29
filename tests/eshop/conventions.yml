@@ -1,0 +1,25 @@
+# Messaging conventions of dotnet/eShop, written from its source at 913acea66708a59595351174cee9b29f37179d29.
+# Supplied to the engine through /config (rule 1.4.2); nothing here is built into the engine.
+messaging:
+  # src/EventBusRabbitMQ/RabbitMQEventBus.cs:33 routes by `@event.GetType().Name`; each service declares its own copy
+  # of an integration event, so the simple type name identifies a message across services.
+  contractIdentity: typeName
+  publish:
+    # src/EventBus/Abstractions/IEventBus.cs:5
+    - method: eShop.EventBus.Abstractions.IEventBus.PublishAsync
+      eventArgument: 0
+    # src/Ordering.API/Application/IntegrationEvents/IOrderingIntegrationEventService.cs:6 (outbox, published later)
+    - method: eShop.Ordering.API.Application.IntegrationEvents.IOrderingIntegrationEventService.AddAndSaveEventAsync
+      eventArgument: 0
+    # src/Catalog.API/IntegrationEvents/ICatalogIntegrationEventService.cs:5 (outbox, published later)
+    - method: eShop.Catalog.API.IntegrationEvents.ICatalogIntegrationEventService.SaveEventAndCatalogContextChangesAsync
+      eventArgument: 0
+  subscribe:
+    # src/EventBus/Extensions/EventBusBuilderExtensions.cs:20
+    - method: Microsoft.Extensions.DependencyInjection.EventBusBuilderExtensions.AddSubscription
+      eventTypeArgument: 0
+      handlerTypeArgument: 1
+  handlerInterfaces:
+    # src/EventBus/Abstractions/IIntegrationEventHandler.cs:3
+    - type: eShop.EventBus.Abstractions.IIntegrationEventHandler
+      eventTypeArgument: 0

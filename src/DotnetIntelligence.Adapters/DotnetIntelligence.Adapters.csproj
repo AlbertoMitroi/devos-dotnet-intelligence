@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Framework adapters (DI, ASP.NET Core, HTTP, gRPC, messaging, configuration, topology, data) arrive in Step 3. -->
   <PropertyGroup>
     <RootNamespace>DotnetIntelligence.Adapters</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../DotnetIntelligence.Analysis/DotnetIntelligence.Analysis.csproj" />
   </ItemGroup>

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json.Nodes;
 using DotnetIntelligence.Analysis;
+using DotnetIntelligence.Adapters;
 using DotnetIntelligence.Analysis.Extraction;
 using DotnetIntelligence.Artifacts;
 using DotnetIntelligence.Contracts;
@@ -92,14 +93,35 @@ public static class AnalyzeRunner
                 },
                 cancellationToken).ConfigureAwait(false);
 
+            stage.Restart();
+            events.Emit("stage.start", new JsonObject { ["stage"] = "adapters" });
+            var conventions = Conventions.Load(options.ConfigPath);
+            var suggestions = AdapterRunner.Run(analysis.Semantic, analysis.Graph, analysis.Files, analysis.Identity, workingCopy.Files, conventions, cancellationToken);
+            EndStage(events, stages, "adapters", stage);
+
+            stage.Restart();
+            events.Emit("stage.start", new JsonObject { ["stage"] = "links" });
+            var links = Linker.Link(analysis.Graph.Observations.ToList(), analysis.Projects);
+            AddPackageUsage(analysis);
+            EndStage(events, stages, "links", stage);
+
             var diagnostics = new List<AnalysisDiagnostic>();
             diagnostics.AddRange(workingCopy.Diagnostics);
             diagnostics.AddRange(discovery.Diagnostics);
             diagnostics.AddRange(analysis.Diagnostics);
             if (configurationHash is not null)
             {
-                diagnostics.Add(new AnalysisDiagnostic(DiagnosticSeverity.Info, "configuration-not-applied", "repository", DiagnosticState.Unsupported,
-                    $"Engine {EngineInfo.Version} records the configuration hash but does not apply configuration yet."));
+                diagnostics.Add(conventions.IsEmpty
+                    ? new AnalysisDiagnostic(DiagnosticSeverity.Warning, "configuration-not-applied", "repository", DiagnosticState.Unsupported,
+                        "The configuration file has no recognized section (messaging: publish, subscribe, handlerInterfaces); nothing was applied.")
+                    : new AnalysisDiagnostic(DiagnosticSeverity.Info, "configuration-applied", "repository", DiagnosticState.Partial,
+                        $"Messaging conventions applied: {conventions.Messaging.Publish.Count} publish, {conventions.Messaging.Subscribe.Count} subscribe, {conventions.Messaging.HandlerInterfaces.Count} handler interfaces; contract identity '{conventions.Messaging.ContractIdentity}'."));
+            }
+            var unresolvedLinks = links.Count(l => (string)l["resolution"]! == "unresolved");
+            if (unresolvedLinks > 0)
+            {
+                diagnostics.Add(new AnalysisDiagnostic(DiagnosticSeverity.Info, "unresolved-links", "repository", DiagnosticState.Partial,
+                    $"{unresolvedLinks} of {links.Count} links are unresolved; each has its reason in graph/links.ndjson."));
             }
             diagnostics = diagnostics.Select(d => d with { Message = scrubber.Scrub(d.Message) }).ToList();
             foreach (var diagnostic in diagnostics.Where(d => d.Severity != DiagnosticSeverity.Info))
@@ -119,7 +141,11 @@ public static class AnalyzeRunner
             generation.WriteNdjson("graph/relations.ndjson", graph.Relations);
             generation.WriteNdjson("graph/evidence.ndjson", graph.Evidence);
             generation.WriteNdjson("graph/observations.ndjson", graph.Observations);
-            generation.WriteNdjson("graph/links.ndjson", []);
+            generation.WriteNdjson("graph/links.ndjson", links);
+            if (!suggestions.IsEmpty)
+            {
+                generation.WriteBytes("suggested-conventions.yml", System.Text.Encoding.UTF8.GetBytes(suggestions.Render()));
+            }
             generation.WriteNdjson("graph/diagnostics.ndjson", diagnosticRecords);
             generation.WriteNdjson("snippets.ndjson", graph.Snippets);
             foreach (var (path, content) in graph.GeneratedFiles.OrderBy(f => f.Key, StringComparer.Ordinal))
@@ -223,6 +249,8 @@ public static class AnalyzeRunner
                     ["evidence"] = graph.Evidence.Count(),
                     ["snippets"] = graph.Snippets.Count(),
                     ["generatedFiles"] = graph.GeneratedFiles.Count,
+                    ["observations"] = graph.Observations.Count(),
+                    ["links"] = links.Count,
                 },
             });
 
@@ -244,6 +272,47 @@ public static class AnalyzeRunner
                     Directory.Delete(directory, recursive: true);
                 }
             }
+        }
+    }
+
+    /// <summary>4.4: the external API a project actually uses, grouped by package and version, from references and calls to metadata symbols.</summary>
+    private static void AddPackageUsage(RepositoryAnalysis analysis)
+    {
+        var projectOf = analysis.Graph.Entities.Where(e => e["project"] is not null)
+            .ToDictionary(e => (string)e["id"]!, e => (string)e["project"]!, StringComparer.Ordinal);
+        var usage = new Dictionary<string, Dictionary<string, (HashSet<string> Symbols, int Usages)>>(StringComparer.Ordinal);
+        foreach (var relation in analysis.Graph.Relations)
+        {
+            var kind = (string)relation["kind"]!;
+            var to = (string)relation["to"]!;
+            if (kind is not ("references" or "calls_declared_target") || !to.StartsWith("dotnet:pkg:", StringComparison.Ordinal)
+                || !projectOf.TryGetValue((string)relation["from"]!, out var project))
+            {
+                continue;
+            }
+            var package = to["dotnet:pkg:".Length..to.IndexOf(':', "dotnet:pkg:".Length)];
+            if (!usage.TryGetValue(project, out var packages))
+            {
+                usage[project] = packages = new(StringComparer.Ordinal);
+            }
+            (HashSet<string> Symbols, int Usages) entry = packages.TryGetValue(package, out var existing) ? existing : (new HashSet<string>(StringComparer.Ordinal), 0);
+            entry.Symbols.Add(to);
+            packages[package] = (entry.Symbols, entry.Usages + relation["evidence"]!.AsArray().Count);
+        }
+        foreach (var record in analysis.Projects)
+        {
+            var packages = usage.GetValueOrDefault((string)record["path"]!) ?? new();
+            record["usedPackageApi"] = new JsonArray(packages.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p =>
+            {
+                var at = p.Key.LastIndexOf('@');
+                return (JsonNode)new JsonObject
+                {
+                    ["package"] = p.Key[..at],
+                    ["version"] = p.Key[(at + 1)..],
+                    ["symbols"] = p.Value.Symbols.Count,
+                    ["usages"] = p.Value.Usages,
+                };
+            }).ToArray());
         }
     }
 

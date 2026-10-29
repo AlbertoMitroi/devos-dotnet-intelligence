@@ -15,7 +15,10 @@ public sealed record RepositoryAnalysis(
     IReadOnlyList<JsonObject> Contexts,
     IReadOnlyList<AnalysisDiagnostic> Diagnostics,
     IReadOnlyList<SolutionPreflight> Preflight,
-    bool AllBlocked);
+    bool AllBlocked,
+    IReadOnlyList<(LoadedProject Project, string ContextId)> Semantic,
+    FileMap Files,
+    SymbolIdentity Identity);
 
 /// <summary>Stages 3 to 9 of 4.2 on an exported working copy: preflight, restore, compatibility, load, extraction, fallback.</summary>
 public static class RepositoryAnalyzer
@@ -121,6 +124,7 @@ public static class RepositoryAnalyzer
         var contextRecords = new List<JsonObject>();
         var dispatchSites = new ConcurrentBag<DispatchSite>();
         var syntaxProjects = new List<(DiscoveredProject Project, string Context, string ProjectId, string Reason)>();
+        var semanticProjects = new List<(LoadedProject Project, string ContextId)>();
         foreach (var project in discovery.Projects)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -133,6 +137,7 @@ public static class RepositoryAnalyzer
             if (loadedProject is { Mode: LoadMode.Semantic })
             {
                 await new ProjectExtractor(loadedProject, contextId, projectId, graph, files, identity, dispatchSites).ExtractAsync(cancellationToken).ConfigureAwait(false);
+                semanticProjects.Add((loadedProject, contextId));
                 mode = "semantic";
                 reason = loadedProject.Reason;
             }
@@ -189,7 +194,8 @@ public static class RepositoryAnalyzer
                 $"{possible} possible runtime targets were inferred from interface and virtual calls to implementations known in this repository; implementations outside the repository are not known."));
         }
 
-        return new RepositoryAnalysis(graph, projectRecords, contextRecords, diagnostics, preflight, targets.Count == 0 && discovery.Projects.Count > 0);
+        return new RepositoryAnalysis(graph, projectRecords, contextRecords, diagnostics, preflight, targets.Count == 0 && discovery.Projects.Count > 0,
+            semanticProjects, files, identity);
     }
 
     private static bool IsWritableDirectory(string? path)
