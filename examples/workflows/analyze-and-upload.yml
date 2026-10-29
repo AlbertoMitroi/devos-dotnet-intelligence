@@ -1,0 +1,40 @@
+# Checkout → dotnet-intelligence → upload the generation as a workflow artifact.
+name: context artifacts
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore the NuGet cache used by the engine
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .dotnet-intelligence/nuget
+          key: dotnet-intelligence-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: dotnet-intelligence-nuget-
+
+      - name: Analyze
+        id: intelligence
+        uses: AlbertoMitroi/dotnet-intelligence@v1
+        with:
+          fail-on: failed
+
+      - name: Upload the generation
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: context-${{ github.sha }}
+          path: ${{ steps.intelligence.outputs.generation-path }}
+
+      - name: Summary
+        env:
+          STATUS: ${{ steps.intelligence.outputs.status }}
+          COVERAGE: ${{ steps.intelligence.outputs.coverage }}
+        run: echo "Generation status $STATUS, coverage $COVERAGE" >> "$GITHUB_STEP_SUMMARY"

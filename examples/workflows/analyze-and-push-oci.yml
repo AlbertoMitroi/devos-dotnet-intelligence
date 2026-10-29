@@ -1,0 +1,35 @@
+# Checkout → dotnet-intelligence → push the generation as an OCI artifact.
+# Publishing is the caller's choice; the engine itself never uploads anything.
+name: context artifacts (OCI)
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Analyze
+        id: intelligence
+        uses: AlbertoMitroi/dotnet-intelligence@v1
+
+      - name: Push the generation with ORAS
+        env:
+          GENERATION: ${{ steps.intelligence.outputs.generation-path }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET: ghcr.io/${{ github.repository_owner }}/context:${{ github.sha }}
+        run: |
+          tar -czf generation.tar.gz -C "$GENERATION" .
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
+          docker run --rm -v "$PWD:/work" -w /work -v "$HOME/.docker/config.json:/root/.docker/config.json:ro" \
+            ghcr.io/oras-project/oras:v1.3.6@sha256:9cfb578be975b762fd898b9d004243d8003aeb807a3e15b2ed212cdd1326c9eb \
+            push "${TARGET,,}" --artifact-type application/vnd.dotnet-intelligence.generation.v0+tar \
+            generation.tar.gz:application/gzip

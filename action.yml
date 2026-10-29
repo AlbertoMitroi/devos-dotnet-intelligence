@@ -1,0 +1,43 @@
+name: dotnet-intelligence
+description: Produce deterministic, verifiable context artifacts for a .NET repository at the checked-out commit.
+author: dotnet-intelligence contributors
+branding:
+  icon: layers
+  color: purple
+inputs:
+  path:
+    description: Repository to analyze, relative to the workspace.
+    required: false
+    default: "."
+  solution:
+    description: Analyze only this solution (repository-relative path).
+    required: false
+  config:
+    description: Configuration file, relative to the workspace.
+    required: false
+  output:
+    description: Generation directory, relative to the workspace. Must be absent or empty.
+    required: false
+    default: intelligence-out
+  include-working-tree:
+    description: Analyze the working tree instead of the committed state; the generation is marked dirty.
+    required: false
+    default: "false"
+  fail-on:
+    description: "Fail the step on: failed, partial or never."
+    required: false
+    default: failed
+outputs:
+  generation-path:
+    description: Generation directory, relative to the workspace.
+  manifest-path:
+    description: manifest.json of the generation, relative to the workspace; empty when no generation was written.
+  status:
+    description: complete, partial or failed.
+  coverage:
+    description: Project coverage as compact JSON (total, semantic, syntax, failed, notAnalyzed).
+runs:
+  using: docker
+  image: docker://ghcr.io/albertomitroi/dotnet-intelligence:0.1.0-action
+  args:
+    - gha

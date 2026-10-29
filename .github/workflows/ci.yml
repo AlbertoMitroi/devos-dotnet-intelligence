@@ -1,0 +1,109 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: verify.sh
+        run: scripts/verify.sh
+        env:
+          DI_VERIFY_TAG: dotnet-intelligence:ci
+
+      - name: verify.ps1
+        shell: pwsh
+        run: scripts/verify.ps1
+        env:
+          DI_VERIFY_TAG: dotnet-intelligence:ci
+
+      - name: Prepare the action under test
+        # The real action.yml points at the published image; this copy builds FROM the image verified above,
+        # so the Docker container action mechanics (inputs, workspace mount, outputs) are exercised before release.
+        run: |
+          mkdir -p .ci-action
+          sed 's#^  image: .*#  image: Dockerfile#' action.yml > .ci-action/action.yml
+          echo 'FROM dotnet-intelligence:ci-action' > .ci-action/Dockerfile
+          cp -R .verify/repos/f00-minimal fixture-repo
+
+      - name: Run the action on a fixture
+        id: smoke
+        uses: ./.ci-action
+        with:
+          path: fixture-repo
+          output: action-out
+
+      - name: Check the action outputs
+        env:
+          STATUS: ${{ steps.smoke.outputs.status }}
+          MANIFEST: ${{ steps.smoke.outputs.manifest-path }}
+          GENERATION: ${{ steps.smoke.outputs.generation-path }}
+          COVERAGE: ${{ steps.smoke.outputs.coverage }}
+        run: |
+          echo "status=$STATUS manifest=$MANIFEST generation=$GENERATION coverage=$COVERAGE"
+          test "$STATUS" = partial
+          test "$GENERATION" = action-out
+          test "$MANIFEST" = action-out/manifest.json
+          test -f "$MANIFEST"
+          test -O "$MANIFEST"
+
+      - name: Upload fixture outputs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: outputs-${{ matrix.arch }}
+          path: |
+            .verify/out
+            .verify/version.json
+            action-out
+          if-no-files-found: error
+
+  compare:
+    name: compare amd64 and arm64
+    needs: verify
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: outputs-amd64
+          path: amd64
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: outputs-arm64
+          path: arm64
+      - name: Byte comparison (run.json excluded)
+        run: |
+          diff -r -x run.json -x '*.events.ndjson' -x version.json amd64 arm64
+          echo "amd64 and arm64 generations are byte-identical"
+          find amd64 -type f ! -name run.json ! -name '*.events.ndjson' ! -name version.json | sort
+
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            docker.io/rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 \
+            -color .github/workflows/*.yml examples/workflows/*.yml

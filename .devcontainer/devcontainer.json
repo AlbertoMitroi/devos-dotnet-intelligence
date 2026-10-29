@@ -1,0 +1,11 @@
+{
+  "name": "dotnet-intelligence",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": "..",
+    "target": "build"
+  },
+  "remoteEnv": {
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+  }
+}
