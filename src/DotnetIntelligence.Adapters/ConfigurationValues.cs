@@ -24,12 +24,12 @@ public sealed class ConfigurationValues
 {
     private readonly Dictionary<string, List<(string File, string BlobId, Dictionary<string, (string? Value, int Offset, int Length)> Keys, byte[] Bytes)>> _byDirectory = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> _optionsSections = new(StringComparer.Ordinal);
-    private readonly IReadOnlyDictionary<string, IReadOnlyList<string>> _runners;
+    private readonly ProjectGraph _projects;
 
-    /// <param name="runners">Per project path: the projects that run its code (itself and every project that references it, transitively).</param>
-    public ConfigurationValues(string root, IReadOnlyList<WorkingCopyFile> files, IReadOnlyDictionary<string, IReadOnlyList<string>> runners)
+    /// <param name="projects">Values come from the appsettings files of the projects that run the code (the project and its referencers).</param>
+    public ConfigurationValues(string root, IReadOnlyList<WorkingCopyFile> files, ProjectGraph projects)
     {
-        _runners = runners;
+        _projects = projects;
         foreach (var file in files.Where(f => Path.GetFileName(f.Path).StartsWith("appsettings", StringComparison.OrdinalIgnoreCase)
                      && f.Path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)).OrderBy(f => f.Path, StringComparer.Ordinal))
         {
@@ -57,7 +57,7 @@ public sealed class ConfigurationValues
     public IReadOnlyList<ConfigurationValue> Values(string projectPath, string key)
     {
         var results = new List<ConfigurationValue>();
-        foreach (var runner in _runners.GetValueOrDefault(projectPath) ?? [projectPath])
+        foreach (var runner in _projects.Runners(projectPath))
         {
             var directory = Path.GetDirectoryName(runner)?.Replace('\\', '/') ?? string.Empty;
             foreach (var (file, blobId, keys, bytes) in _byDirectory.GetValueOrDefault(directory) ?? [])
@@ -141,7 +141,7 @@ public sealed class ConfigurationValues
                     && context.StringTemplate(AdapterContext.Argument(invocation, "key")) is { Template: { } key, Constant: true }
                     && SectionKey(AdapterContext.Receiver(invocation), context) is { } valueSection)
                 {
-                    var fallback = AdapterContext.Argument(invocation, "defaultValue") is { } d && context.StringTemplate(d) is { Template: { } t, Constant: true } ? t : null;
+                    var fallback = AdapterContext.Argument(invocation, "defaultValue") is { } defaultValue && context.StringTemplate(defaultValue) is { Template: { } t, Constant: true } ? t : null;
                     return new ConfigurationReference(Join(valueSection, key), fallback);
                 }
                 if (type == "Microsoft.Extensions.Configuration.ConfigurationExtensions" && method.Name == "GetConnectionString"
@@ -191,6 +191,7 @@ public sealed class ConfigurationValues
         foreach (var reference in property.DeclaringSyntaxReferences)
         {
             if (reference.GetSyntax() is Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax { Initializer.Value: { } value }
+                && context.Compilation.ContainsSyntaxTree(value.SyntaxTree)
                 && context.Compilation.GetSemanticModel(value.SyntaxTree).GetOperation(value) is { } op
                 && context.StringTemplate(op) is { Template: { } constant, Constant: true })
             {

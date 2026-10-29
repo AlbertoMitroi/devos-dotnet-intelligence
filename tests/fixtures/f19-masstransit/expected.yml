@@ -1,0 +1,102 @@
+# Fixture 19: MassTransit 8 by resolved symbol. Sales (library) publishes, sends and produces; Billing (host) registers
+# consumers, picks RabbitMQ or Azure Service Bus by configuration (both listed in "transports"), names one receive
+# endpoint, lets ConfigureEndpoints name the others (kebab-case convention), and attaches a Kafka rider whose topic
+# comes from configuration (D21: stored because it is a destination and not secret). The bus transports of the host
+# apply to the library code it runs. The secret-looking Kafka password never appears in the generation.
+exitCode: 0
+status: complete
+loadModes:
+  src/Billing/Billing.csproj: semantic
+  src/Contracts/Contracts.csproj: semantic
+  src/Sales/Sales.csproj: semantic
+observations:
+  kinds: [messaging.publish, messaging.subscribe]
+  items:
+    - kind: messaging.publish
+      publisher: src/Sales/Sales.csproj|M:Sales.Checkout.CompleteAsync(System.Int32)
+      contract:
+        entity: src/Contracts/Contracts.csproj|T:Contracts.OrderSubmitted
+        ext.dotnet.entityName: Contracts:OrderSubmitted
+      resolution: exact
+      ext.dotnet.operation: publish
+      transport: null
+      transports: '["azure-service-bus","rabbitmq"]'
+      destination:
+        kind: topic
+        name: Contracts:OrderSubmitted
+        nameSource: convention
+      at: src/Sales/Checkout.cs:10
+    - kind: messaging.publish
+      contract:
+        entity: src/Contracts/Contracts.csproj|T:Contracts.SubmitInvoice
+      resolution: exact
+      ext.dotnet.operation: send
+      transports: '["azure-service-bus","rabbitmq"]'
+      destination:
+        kind: queue
+        name: submit-invoice
+        nameSource: literal
+      at: src/Sales/Checkout.cs:12
+    - kind: messaging.publish
+      contract:
+        entity: src/Contracts/Contracts.csproj|T:Contracts.ApplicationReceived
+      resolution: exact
+      ext.dotnet.operation: produce
+      transport: kafka
+      destination:
+        kind: topic
+        name: lease-applications-v1
+        nameSource: configuration
+        configurationKey: Kafka:Topics:Applications
+      at: src/Sales/Checkout.cs:13
+    - kind: messaging.subscribe
+      handler: src/Billing/Billing.csproj|T:Billing.OrderSubmittedConsumer
+      ext.dotnet.via: handler-interface
+      transports: '["azure-service-bus","rabbitmq"]'
+      destination:
+        kind: queue
+        name: billing-orders
+        nameSource: literal
+      at: src/Billing/Consumers.cs:6
+    - kind: messaging.subscribe
+      handler: src/Billing/Billing.csproj|T:Billing.OrderSubmittedConsumer
+      ext.dotnet.via: subscription
+      destination:
+        name: billing-orders
+      at: src/Billing/Program.cs:14
+    - kind: messaging.subscribe
+      handler: src/Billing/Billing.csproj|T:Billing.SubmitInvoiceConsumer
+      ext.dotnet.via: handler-interface
+      destination:
+        kind: queue
+        name: submit-invoice
+        nameSource: convention
+      at: src/Billing/Consumers.cs:11
+    - kind: messaging.subscribe
+      handler: src/Billing/Billing.csproj|T:Billing.SubmitInvoiceConsumer
+      ext.dotnet.via: subscription
+      destination:
+        name: submit-invoice
+      at: src/Billing/Program.cs:15
+    - kind: messaging.subscribe
+      handler: src/Billing/Billing.csproj|T:Billing.ApplicationReceivedConsumer
+      ext.dotnet.via: handler-interface
+      transport: kafka
+      destination:
+        kind: topic
+        name: lease-applications-v1
+        nameSource: configuration
+        configurationKey: Kafka:Topics:Applications
+        ext.dotnet.consumerGroup: billing
+      at: src/Billing/Consumers.cs:16
+    - kind: messaging.subscribe
+      handler: src/Billing/Billing.csproj|T:Billing.ApplicationReceivedConsumer
+      ext.dotnet.via: subscription
+      transport: kafka
+      at: src/Billing/Program.cs:30
+links:
+  - messaging consumes_contract exact src/Billing/Program.cs:18 -> src/Billing/Consumers.cs:6
+  - messaging consumes_contract exact src/Billing/Program.cs:18 -> src/Billing/Consumers.cs:11
+  - messaging consumes_contract exact src/Billing/Program.cs:31 -> src/Billing/Consumers.cs:16
+secretsAbsent:
+  - kafka-super-secret-value-123

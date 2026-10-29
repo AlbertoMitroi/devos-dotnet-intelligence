@@ -1,0 +1,64 @@
+# Fixture 23: ABP Framework through a stand-in with ABP's names (as the Aspire stub of fixture 8; real ABP is the
+# eShopOnAbp run). A distributed event with [EventName] is published by Ordering and handled by Payment: the identity
+# is the event name, the transport comes from the RabbitMQ event bus module both hosts depend on, the exchange and
+# queue from RabbitMQ:EventBus (configuration, D21). ConventionalControllers turns the application service into
+# endpoints by ABP's route conventions (candidates). The static client proxy takes verb and URL from the generated
+# proxy description and its base URL from RemoteServices of the host that runs it, and links to those endpoints.
+exitCode: 0
+status: complete
+observations:
+  kinds: [messaging.publish, messaging.subscribe, http.endpoint, http.call]
+  items:
+    - kind: messaging.publish
+      contract:
+        entity: src/Ordering.Contracts/Ordering.Contracts.csproj|T:Shop.Ordering.OrderPlacedEto
+        identity: name:Shop.Order.Placed
+      transport: rabbitmq
+      destination:
+        kind: exchange
+        name: Shop
+        nameSource: configuration
+        configurationKey: RabbitMQ:EventBus:ExchangeName
+        ext.dotnet.routingKey: Shop.Order.Placed
+      at: src/Ordering/Ordering.cs:15
+    - kind: messaging.subscribe
+      handler: src/Payment/Payment.csproj|T:Shop.Payment.OrderPlacedHandler
+      contract:
+        identity: name:Shop.Order.Placed
+      transport: rabbitmq
+      destination:
+        kind: queue
+        name: Shop_Payment
+        configurationKey: RabbitMQ:EventBus:ClientName
+      at: src/Payment/Payment.cs:8
+    - kind: http.endpoint
+      method: GET
+      routeTemplate: api/ordering/order/{id}
+      canonicalRoute: /api/ordering/order/{}
+      handler: src/Ordering/Ordering.csproj|M:Shop.Ordering.OrderAppService.GetAsync(System.Guid)
+      resolution: candidate
+      ext.dotnet.style: abp-auto-api
+      at: src/Ordering/Ordering.cs:11
+    - kind: http.endpoint
+      method: POST
+      routeTemplate: api/ordering/order
+      handler: src/Ordering/Ordering.csproj|M:Shop.Ordering.OrderAppService.CreateAsync(Shop.Ordering.CreateOrderDto)
+      at: src/Ordering/Ordering.cs:13
+    - kind: http.call
+      method: GET
+      urlTemplate: /api/ordering/order/{id}
+      client: src/Ordering.Client/Ordering.Client.csproj|T:Shop.Ordering.ClientProxies.OrderClientProxy
+      remoteService: Ordering
+      baseAddress: http://ordering-api/
+      resolution: exact
+      at: src/Ordering.Client/OrderClientProxy.cs:9
+    - kind: http.call
+      method: POST
+      urlTemplate: /api/ordering/order
+      at: src/Ordering.Client/OrderClientProxy.cs:17
+links:
+  - messaging consumes_contract exact src/Ordering/Ordering.cs:15 -> src/Payment/Payment.cs:13
+  - http configured_route candidate src/Ordering.Client/ClientProxies/ordering-generate-proxy.json:11 -> src/Ordering/Ordering.cs:11
+  - http configured_route candidate src/Ordering.Client/ClientProxies/ordering-generate-proxy.json:21 -> src/Ordering/Ordering.cs:13
+secretsAbsent:
+  - rabbit-password-not-stored

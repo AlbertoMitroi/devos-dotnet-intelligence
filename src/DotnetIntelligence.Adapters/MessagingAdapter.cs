@@ -16,6 +16,11 @@ public sealed class MessagingAdapter(AdapterContext context, Conventions convent
     private const string ConventionMethod = "configured-convention";
     private static readonly string[] PublishWords = ["Publish", "Send", "Raise", "Emit", "Dispatch"];
 
+    /// <summary>Libraries with their own adapter (exact matches): the generic heuristics leave them alone.</summary>
+    private static readonly string[] Claimed = ["MassTransit.", "MediatR.", "Volo.Abp.", "Microsoft.AspNetCore.SignalR."];
+
+    private static bool IsClaimed(string fullName) => Claimed.Any(c => fullName.StartsWith(c, StringComparison.Ordinal));
+
     public void VisitType(INamedTypeSymbol type)
     {
         if (type.TypeKind != TypeKind.Class || type.IsAbstract || type.Locations.FirstOrDefault(l => l.IsInSource) is not { } location)
@@ -30,7 +35,7 @@ public sealed class MessagingAdapter(AdapterContext context, Conventions convent
             {
                 Subscribe(@interface.TypeArguments[convention.EventTypeArgument], type, "exact", ConventionMethod, location, "handler-interface", definition);
             }
-            else if (@interface.TypeArguments.Length == 1 && @interface.Name.EndsWith("Handler", StringComparison.Ordinal))
+            else if (@interface.TypeArguments.Length == 1 && @interface.Name.EndsWith("Handler", StringComparison.Ordinal) && !IsClaimed(definition))
             {
                 Subscribe(@interface.TypeArguments[0], type, "candidate", null, location, "handler-interface", definition);
                 suggestions.HandlerInterface(definition);
@@ -65,6 +70,10 @@ public sealed class MessagingAdapter(AdapterContext context, Conventions convent
             return;
         }
 
+        if (IsClaimed(name))
+        {
+            return;
+        }
         var typeArguments = invocation.TargetMethod.TypeArguments;
         if (typeArguments.Length == 2 && typeArguments[1].AllInterfaces.Any(i => i.IsGenericType && i.Name.EndsWith("Handler", StringComparison.Ordinal)
                 && i.TypeArguments.Length >= 1 && SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], typeArguments[0])))

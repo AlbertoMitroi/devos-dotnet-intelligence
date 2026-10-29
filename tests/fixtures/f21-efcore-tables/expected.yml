@@ -1,0 +1,42 @@
+# Fixture 21: EF Core tables (data.table). ToTable in OnModelCreating wins over conventions; [Table] names the table
+# and schema; a DbSet without either keeps EF's convention (property name) in the context's default schema; ToTable in
+# an IEntityTypeConfiguration with a settable static prefix is a candidate (the prefix can change at run time).
+exitCode: 0
+status: complete
+loadModes:
+  src/Catalog/Catalog.csproj: semantic
+observations:
+  kinds: [data.table]
+  items:
+    - kind: data.table
+      entity: src/Catalog/Catalog.csproj|T:Catalog.Product
+      table: products
+      schema: inventory
+      store: efcore
+      dbContext: src/Catalog/Catalog.csproj|T:Catalog.CatalogDbContext
+      tableSource: fluent
+      resolution: exact
+      at: src/Catalog/Model.cs:31
+    - kind: data.table
+      entity: src/Catalog/Catalog.csproj|T:Catalog.Order
+      table: purchase_orders
+      schema: sales
+      tableSource: attribute
+      resolution: exact
+      at: src/Catalog/Model.cs:9
+    - kind: data.table
+      entity: src/Catalog/Catalog.csproj|T:Catalog.Customer
+      table: Customers
+      schema: catalog
+      tableSource: convention
+      resolution: exact
+      at: src/Catalog/Model.cs:25
+    - kind: data.table
+      entity: src/Catalog/Catalog.csproj|T:Catalog.Invoice
+      table: CatalogInvoices
+      schema: null
+      dbContext: null
+      tableSource: fluent
+      resolution: candidate
+      at: src/Catalog/Model.cs:38
+links: []

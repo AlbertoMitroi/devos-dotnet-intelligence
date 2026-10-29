@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="src/AbpStub/AbpStub.csproj" />
+  <Project Path="src/Ordering.Client/Ordering.Client.csproj" />
+  <Project Path="src/Ordering.Contracts/Ordering.Contracts.csproj" />
+  <Project Path="src/Ordering/Ordering.csproj" />
+  <Project Path="src/Payment/Payment.csproj" />
+</Solution>

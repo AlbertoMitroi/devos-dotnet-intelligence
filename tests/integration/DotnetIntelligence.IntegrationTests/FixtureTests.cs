@@ -19,9 +19,11 @@ public class FixtureTests : IDisposable
     public static TheoryData<string> Fixtures()
     {
         var data = new TheoryData<string>();
+        // DI_FIXTURES=f19-masstransit,f20-... limits the run while iterating on a few fixtures; the image runs them all.
+        var only = Environment.GetEnvironmentVariable("DI_FIXTURES")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         foreach (var directory in Directory.EnumerateDirectories(Path.Combine(TestRepositories.EngineRoot, "tests", "fixtures")).Order(StringComparer.Ordinal))
         {
-            if (File.Exists(Path.Combine(directory, "expected.yml")))
+            if (File.Exists(Path.Combine(directory, "expected.yml")) && (only is null || only.Contains(Path.GetFileName(directory))))
             {
                 data.Add(Path.GetFileName(directory));
             }

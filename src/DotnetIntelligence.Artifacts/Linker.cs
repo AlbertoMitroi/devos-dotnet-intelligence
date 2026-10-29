@@ -38,6 +38,22 @@ public static class Linker
             {
                 reason = (string?)call["reason"] ?? "The request URI could not be resolved.";
             }
+            else if (call["remoteService"] is not null)
+            {
+                // Generated client proxies (ABP) carry the server's route; the base URL points at a gateway or a service
+                // host, so the target is any endpoint of the repository with the same verb and route.
+                var scored = Of("http.endpoint").Where(e => MethodMatches((string)call["method"]!, (string)e["method"]!))
+                    .Select(e => (Endpoint: e, Score: RouteScore(route, (string)e["canonicalRoute"]!))).Where(x => x.Score is not null).ToList();
+                if (scored.Count > 0)
+                {
+                    var best = scored.Max(x => x.Score);
+                    targets.AddRange(scored.Where(x => x.Score == best).Select(x => x.Endpoint));
+                }
+                else
+                {
+                    reason = $"No endpoint of the repository matches {call["method"]} {route}.";
+                }
+            }
             else if (registration is null || baseAddress is null)
             {
                 reason = "No typed-client registration with a base address was found for the calling client.";
@@ -113,6 +129,65 @@ public static class Linker
             AddLinks(links, "possible_communication", "messaging", publish, nameTargets, Evidence(publish), ["candidate"],
                 exactTargets.Count == 0 && nameTargets.Count == 0 ? "No subscriber of the same contract or of a contract with the same name was found." : null,
                 keepUnresolved: exactTargets.Count == 0, fanOut: true);
+        }
+
+        // ---- in-process dispatch: inprocess.send -> inprocess.handler of the same request type ----
+        var handlersByRequest = Of("inprocess.handler").GroupBy(h => $"{h["mechanism"]}|{h["request"]}", StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+        foreach (var send in Of("inprocess.send"))
+        {
+            var targets = handlersByRequest.GetValueOrDefault($"{send["mechanism"]}|{send["request"]}") ?? [];
+            // A notification reaches every handler (fan-out); a request has one handler, several are ambiguous.
+            AddLinks(links, "dispatches_to", "inprocess", send, targets, Evidence(send), [(string)send["resolution"]!],
+                targets.Count == 0 ? $"No {send["mechanism"]} handler of {send["request"]} was found in the repository." : null,
+                keepUnresolved: true, fanOut: (string?)send["pattern"] == "notification");
+        }
+
+        // ---- workflow: workflow.node -> workflow.handler by role, process and name (conventions) ----
+        var workflowHandlers = Of("workflow.handler").Where(h => (string?)h["resolution"] != "unresolved").ToList();
+        var roles = workflowHandlers.Select(h => (string)h["role"]!).ToHashSet(StringComparer.Ordinal);
+        foreach (var node in Of("workflow.node"))
+        {
+            var nodeType = (string)node["nodeType"]!;
+            // The "event" role handles message events (a flow event name against the BPMN message name).
+            var isEvent = node["messageName"] is not null;
+            if (!roles.Contains(nodeType) && !(isEvent && roles.Contains("event")))
+            {
+                continue;
+            }
+            var names = new List<string?> { (string?)node["name"], (string?)node["messageName"] };
+            names.AddRange((node["metadata"] as JsonObject)?.Select(m => (string?)m.Value) ?? []);
+            var scored = new List<(JsonObject Handler, string Strength)>();
+            foreach (var handler in workflowHandlers)
+            {
+                var role = (string)handler["role"]!;
+                var process = (string?)handler["processId"];
+                if (!(role == nodeType || role == "event" && isEvent) || process is not ("*" or null) && process != (string?)node["processId"])
+                {
+                    continue;
+                }
+                var handled = (string?)handler["nodeName"] ?? (string?)handler["eventName"];
+                if (handled is null)
+                {
+                    continue;
+                }
+                if (names.Any(n => n == handled))
+                {
+                    scored.Add((handler, (string)handler["resolution"]!));
+                }
+                else if (names.Any(n => n is not null && Normalize(n) == Normalize(handled)))
+                {
+                    scored.Add((handler, "candidate"));
+                }
+            }
+            var best = scored.Count == 0 ? [] : scored.Where(x => x.Strength == scored.Select(y => y.Strength).OrderByDescending(r => Array.IndexOf(Strength, r)).First()).ToList();
+            var targets = best.Select(x =>
+            {
+                var copy = (JsonObject)x.Handler.DeepClone();
+                copy["resolution"] = x.Strength;
+                return copy;
+            }).ToList();
+            AddLinks(links, "dispatches_to", "workflow", node, targets, Evidence(node), ["exact"],
+                targets.Count == 0 ? $"No handler with role {nodeType} names '{node["name"]}' (process {node["processId"]})." : null, keepUnresolved: true);
         }
 
         // ---- DI: di.consumes -> di.registers of the same service in the consumer's composition roots ----
@@ -261,6 +336,9 @@ public static class Linker
         return canonicalBase == "/" ? route : canonicalBase + (route == "/" ? string.Empty : route);
     }
 
+
+    /// <summary>Lower case letters and digits only: "Send Quote" and "SendQuote" compare equal.</summary>
+    internal static string Normalize(string name) => new(name.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
 
     internal static bool MethodMatches(string call, string endpoint) => call == "{}" || endpoint == "*" || endpoint == "{}" || call == endpoint;
 

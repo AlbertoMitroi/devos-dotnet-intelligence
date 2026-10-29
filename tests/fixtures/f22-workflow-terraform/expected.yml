@@ -1,0 +1,62 @@
+# Fixture 22: a BPMN 2.0 process with lanes, a message event, a gateway and a conditional flow, its
+# ProcessMetaData.json, plugins of a stand-in in-house workflow engine, and Terraform outside every project (repository
+# scope). Without conventions the process is read and no plugin is linked. With the conventions file each plugin names
+# its node by property, attribute, type argument (flow event) or type name (candidate); a service task without a plugin
+# is an unresolved dispatch with its reason. Terraform gives resources without any value.
+runs:
+  - exitCode: 0
+    status: complete
+    observations:
+      kinds: [workflow.process, workflow.node, workflow.flow, workflow.handler, infra.resource]
+      items:
+        - kind: workflow.process
+          processId: LeaseProcess
+          name: Lease
+          file: src/Leasing/ConfigFiles/Process/Lease.bpmn
+          isExecutable: "true"
+          lanes: '[{"id":"Lane_Underwriter","name":"Leasing:Underwriter"}]'
+          metadataFile: src/Leasing/ConfigFiles/Process/Lease.ProcessMetaData.json
+          at: src/Leasing/ConfigFiles/Process/Lease.bpmn:4
+        - {kind: workflow.node, nodeId: Start, nodeType: startEvent, name: Lease requested, lane: null, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:10"}
+        - {kind: workflow.node, nodeId: Task_Credit, nodeType: serviceTask, element: serviceTask, name: Run credit check, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:11"}
+        - {kind: workflow.node, nodeId: Gateway_Score, nodeType: gateway, element: exclusiveGateway, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:12"}
+        - {kind: workflow.node, nodeId: Task_Approve, nodeType: userTask, lane: "Leasing:Underwriter", at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:13"}
+        - {kind: workflow.node, nodeId: Task_Contract, nodeType: serviceTask, name: Send contract, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:14"}
+        - {kind: workflow.node, nodeId: Event_Signed, nodeType: intermediateEvent, eventDefinition: message, messageName: LeaseSigned, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:15"}
+        - {kind: workflow.node, nodeId: End, nodeType: endEvent, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:18"}
+        - {kind: workflow.flow, flowId: F1, from: Start, to: Task_Credit, condition: null, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:19"}
+        - {kind: workflow.flow, flowId: F2, from: Task_Credit, to: Gateway_Score, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:20"}
+        - {kind: workflow.flow, flowId: F3, from: Gateway_Score, to: Task_Approve, name: "yes", condition: "${score >= 600}", at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:21"}
+        - {kind: workflow.flow, flowId: F4, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:24"}
+        - {kind: workflow.flow, flowId: F5, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:25"}
+        - {kind: workflow.flow, flowId: F6, at: "src/Leasing/ConfigFiles/Process/Lease.bpmn:26"}
+        - {kind: infra.resource, provider: azurerm, type: azurerm_client_config, name: current, block: data, at: "terraform/main.tf:2"}
+        - {kind: infra.resource, provider: azurerm, type: azurerm_servicebus_namespace, name: bus, block: resource, at: "terraform/main.tf:4"}
+        - {kind: infra.resource, provider: module, type: module, name: network, block: module, at: "terraform/main.tf:14"}
+    links: []
+  - config: conventions.yml
+    exitCode: 0
+    status: complete
+    diagnostics:
+      - code: configuration-applied
+        scope: repository
+    observations:
+      kinds: [workflow.handler]
+      items:
+        - kind: workflow.handler
+          processId: "*"
+          nodeName: Run credit check
+          handler: src/Leasing/Leasing.csproj|T:Leasing.CreditCheckPlugin
+          role: serviceTask
+          resolution: exact
+          at: src/Leasing/Plugins.cs:11
+        - {kind: workflow.handler, nodeName: Archive lease, role: serviceTask, resolution: exact, at: "src/Leasing/Plugins.cs:17"}
+        - {kind: workflow.handler, nodeName: Approve lease, role: userTask, resolution: exact, at: "src/Leasing/Plugins.cs:21"}
+        - {kind: workflow.handler, eventName: LeaseSigned, role: event, resolution: exact, at: "src/Leasing/Plugins.cs:27"}
+        - {kind: workflow.handler, nodeName: LeaseRequested, role: startEvent, resolution: candidate, at: "src/Leasing/Plugins.cs:32"}
+    links:
+      - workflow dispatches_to candidate src/Leasing/ConfigFiles/Process/Lease.bpmn:10 -> src/Leasing/Plugins.cs:32
+      - workflow dispatches_to exact src/Leasing/ConfigFiles/Process/Lease.ProcessMetaData.json:5 -> src/Leasing/Plugins.cs:11
+      - workflow dispatches_to exact src/Leasing/ConfigFiles/Process/Lease.bpmn:13 -> src/Leasing/Plugins.cs:21
+      - workflow dispatches_to unresolved src/Leasing/ConfigFiles/Process/Lease.bpmn:14 -> null
+      - workflow dispatches_to exact src/Leasing/ConfigFiles/Process/Lease.bpmn:15 -> src/Leasing/Plugins.cs:27

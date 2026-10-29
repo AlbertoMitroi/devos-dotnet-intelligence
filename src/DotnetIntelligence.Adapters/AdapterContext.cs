@@ -34,6 +34,15 @@ public sealed class AdapterContext
     /// <summary>Repository-relative paths of every C# project file in the commit.</summary>
     public IReadOnlySet<string> RepositoryProjects { get; init; } = new HashSet<string>(StringComparer.Ordinal);
 
+    /// <summary>Every file of the analysed commit.</summary>
+    public IReadOnlyList<WorkingCopyFile> RepositoryFiles { get; init; } = [];
+
+    /// <summary>Configuration values of the repository, used only for destinations (D21).</summary>
+    public ConfigurationValues? Configuration { get; init; }
+
+    /// <summary>Caller conventions (configuration file).</summary>
+    public Conventions Conventions { get; init; } = new();
+
     public string? IdOf(ISymbol? symbol) =>
         SymbolIdentity.Normalize(symbol) is { } normalized && normalized is not INamespaceSymbol ? Identity.IdOf(normalized, Compilation) : null;
 
@@ -189,11 +198,28 @@ public sealed class AdapterContext
                 return StringTemplate(value);
             case IFieldReferenceOperation field when FieldInitializer(field.Field) is { } initializer:
                 return StringTemplate(initializer);
+            case IPropertyReferenceOperation { Property: { IsStatic: true, IsIndexer: false } property } when PropertyInitializer(property) is { } propertyInitializer:
+                // A settable static property (for example a table prefix) has its initializer as the likely value, never a certain one.
+                return (StringTemplate(propertyInitializer).Template, false);
             case IObjectCreationOperation { Constructor.ContainingType: { } uriType } creation when FullName(uriType) == "System.Uri" && creation.Arguments.Length > 0:
                 return StringTemplate(creation.Arguments[0].Value);
             default:
                 return (null, false);
         }
+    }
+
+    /// <summary>The initializer of an auto-property declared in source ("{ get; set; } = value").</summary>
+    private IOperation? PropertyInitializer(IPropertySymbol property)
+    {
+        foreach (var reference in property.DeclaringSyntaxReferences)
+        {
+            if (reference.GetSyntax() is PropertyDeclarationSyntax { Initializer.Value: { } value }
+                && Compilation.ContainsSyntaxTree(value.SyntaxTree))
+            {
+                return Compilation.GetSemanticModel(value.SyntaxTree).GetOperation(value) is { } op ? Unwrap(op) : null;
+            }
+        }
+        return null;
     }
 
     /// <summary>The initializer of a readonly (or const) field that is never assigned outside its declaration and constructors.</summary>
@@ -205,7 +231,7 @@ public sealed class AdapterContext
         }
         foreach (var reference in field.DeclaringSyntaxReferences)
         {
-            if (reference.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } value })
+            if (reference.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } value } && Compilation.ContainsSyntaxTree(value.SyntaxTree))
             {
                 var assignedInConstructor = field.ContainingType.InstanceConstructors.Concat(field.ContainingType.StaticConstructors)
                     .SelectMany(c => c.DeclaringSyntaxReferences).Select(r => r.GetSyntax())
@@ -225,23 +251,30 @@ public sealed class AdapterContext
     /// <summary>The value assigned to a property inside a configuration lambda, for example o =&gt; o.BaseAddress = new("http://x").</summary>
     public (string? Template, bool Constant, SyntaxNode? Node) AssignedInLambda(IOperation? lambda, string propertyName)
     {
+        var (template, constant, node, _) = AssignedValueInLambda(lambda, propertyName);
+        return (template, constant, node);
+    }
+
+    /// <summary>As <see cref="AssignedInLambda"/>, plus the assigned value operation.</summary>
+    public (string? Template, bool Constant, SyntaxNode? Node, IOperation? Value) AssignedValueInLambda(IOperation? lambda, string propertyName)
+    {
         if (lambda is IDelegateCreationOperation delegateCreation)
         {
             lambda = delegateCreation.Target;
         }
         if (lambda is not IAnonymousFunctionOperation function)
         {
-            return (null, false, null);
+            return (null, false, null, null);
         }
         foreach (var assignment in function.Body.Descendants().OfType<ISimpleAssignmentOperation>())
         {
             if (Unwrap(assignment.Target) is IPropertyReferenceOperation property && property.Property.Name == propertyName)
             {
                 var (template, constant) = StringTemplate(assignment.Value);
-                return (template, constant, assignment.Syntax);
+                return (template, constant, assignment.Syntax, assignment.Value);
             }
         }
-        return (null, false, null);
+        return (null, false, null, null);
     }
 
     public static bool IsConditional(SyntaxNode node) =>

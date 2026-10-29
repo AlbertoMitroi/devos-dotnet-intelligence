@@ -37,6 +37,7 @@ public class ContractVendoringTests
         var present = Directory.EnumerateFiles(RepositoryRoot.File("schema"), "*", SearchOption.AllDirectories)
             .Select(f => Path.GetRelativePath(RepositoryRoot.Path, f).Replace('\\', '/'))
             .Where(f => f != "schema/CONTRACT-SOURCE.json");
-        Assert.Empty(present.Where(f => !recorded.Contains(f)));
+        var unrecorded = present.Where(f => !recorded.Contains(f)).ToList();
+        Assert.True(unrecorded.Count == 0, "Not vendored from intelligence-contract: " + string.Join(", ", unrecorded));
     }
 }

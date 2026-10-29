@@ -1,0 +1,37 @@
+{
+  "modules": {
+    "ordering": {
+      "rootPath": "ordering",
+      "remoteServiceName": "Ordering",
+      "controllers": {
+        "Shop.Ordering.OrderAppService": {
+          "controllerName": "Order",
+          "type": "Shop.Ordering.OrderAppService",
+          "actions": {
+            "GetAsyncById": {
+              "uniqueName": "GetAsyncById",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "api/ordering/order/{id}",
+              "parametersOnMethod": [
+                { "name": "id", "typeAsString": "System.Guid, System.Private.CoreLib" }
+              ],
+              "implementFrom": "Shop.Ordering.IOrderAppService"
+            },
+            "CreateAsyncByInput": {
+              "uniqueName": "CreateAsyncByInput",
+              "name": "CreateAsync",
+              "httpMethod": "POST",
+              "url": "api/ordering/order",
+              "parametersOnMethod": [
+                { "name": "input", "typeAsString": "Shop.Ordering.CreateOrderDto, Shop.Ordering.Contracts" }
+              ],
+              "implementFrom": "Shop.Ordering.IOrderAppService"
+            }
+          }
+        }
+      }
+    }
+  },
+  "types": {}
+}

@@ -1,0 +1,22 @@
+# The in-house workflow engine's plugin interfaces, named by symbol, and how each plugin names what it handles.
+workflow:
+  handlers:
+    - interface: Flow.Engine.IHandleServiceTask
+      role: serviceTask
+      name:
+        property: TaskName
+    - interface: Flow.Engine.IHandleUserTaskCommand
+      role: userTask
+      name:
+        attribute: Flow.Engine.TaskAttribute
+    - interface: Flow.Engine.IHandleFlowEvent
+      role: event
+      name:
+        typeArgument: 0
+    - interface: Flow.Engine.IHandleNewFlow
+      role: startEvent
+      name:
+        typeName: true
+        removeSuffixes: [Plugin]
+  metadata:
+    nodeFields: [Plugin]

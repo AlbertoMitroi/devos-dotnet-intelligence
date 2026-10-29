@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Flow/Flow.csproj" />
+  <Project Path="src/Leasing/Leasing.csproj" />
+</Solution>

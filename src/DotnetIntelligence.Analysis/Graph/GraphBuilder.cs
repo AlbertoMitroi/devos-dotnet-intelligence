@@ -164,6 +164,9 @@ public sealed class GraphBuilder(string extractor, SecretScrubber scrubber)
             });
     }
 
+    /// <summary>Secret redaction for short texts the engine stores (for example BPMN conditions).</summary>
+    public string Redact(string text) => scrubber.RedactSnippet(text);
+
     private static string Truncate(string text, int max) => text.Length <= max ? text : text[..max] + "…";
 
     private sealed class RelationAccumulator(string id, JsonObject identity)

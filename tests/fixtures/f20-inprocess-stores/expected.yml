@@ -1,0 +1,113 @@
+# Fixture 20: in-process dispatch and stores in one web project, by resolved symbol. MediatR Send reaches its one
+# request handler; Publish fans out to two notification handlers (dispatches_to, via inprocess). Marten (9.x, whose
+# event APIs live in JasperFx.Events) appends events, registers an async projection and an inline snapshot, and stores
+# documents under its table alias convention. SignalR maps a hub and sends to all and to a group. The Elasticsearch
+# client indexes into a literal index and searches an index named by DefaultMappingFor from configuration (D21).
+exitCode: 0
+status: complete
+loadModes:
+  src/Leasing/Leasing.csproj: semantic
+observations:
+  kinds: [inprocess.send, inprocess.handler, eventstore.append, eventstore.projection, data.table, realtime.hub, realtime.send, search.index]
+  items:
+    - kind: inprocess.send
+      request: src/Leasing/Leasing.csproj|T:Leasing.ApproveLease
+      mechanism: mediatr
+      pattern: request
+      resolution: exact
+      at: src/Leasing/Program.cs:22
+    - kind: inprocess.send
+      request: src/Leasing/Leasing.csproj|T:Leasing.LeaseApproved
+      sender: src/Leasing/Leasing.csproj|M:Leasing.ApproveLeaseHandler.Handle(Leasing.ApproveLease,System.Threading.CancellationToken)
+      pattern: notification
+      resolution: exact
+      at: src/Leasing/Handlers.cs:15
+    - kind: inprocess.handler
+      request: src/Leasing/Leasing.csproj|T:Leasing.ApproveLease
+      handler: src/Leasing/Leasing.csproj|T:Leasing.ApproveLeaseHandler
+      pattern: request
+      at: src/Leasing/Handlers.cs:7
+    - kind: inprocess.handler
+      request: src/Leasing/Leasing.csproj|T:Leasing.LeaseApproved
+      handler: src/Leasing/Leasing.csproj|T:Leasing.NotifyUsers
+      pattern: notification
+      at: src/Leasing/Handlers.cs:20
+    - kind: inprocess.handler
+      request: src/Leasing/Leasing.csproj|T:Leasing.LeaseApproved
+      handler: src/Leasing/Leasing.csproj|T:Leasing.IndexLease
+      pattern: notification
+      at: src/Leasing/Handlers.cs:26
+    - kind: eventstore.append
+      event: src/Leasing/Leasing.csproj|T:Leasing.LeaseCreated
+      stream: unknown
+      store: marten
+      aggregate: src/Leasing/Leasing.csproj|T:Leasing.Lease
+      resolution: exact
+      at: src/Leasing/Handlers.cs:11
+    - kind: eventstore.append
+      event: src/Leasing/Leasing.csproj|T:Leasing.LeaseCancelled
+      aggregate: null
+      resolution: exact
+      at: src/Leasing/Handlers.cs:12
+    - kind: eventstore.projection
+      projection: src/Leasing/Leasing.csproj|T:Leasing.LeaseSummaryProjection
+      lifecycle: async
+      events: '["dotnet:src/Leasing/Leasing.csproj:T:Leasing.LeaseCancelled","dotnet:src/Leasing/Leasing.csproj:T:Leasing.LeaseCreated"]'
+      at: src/Leasing/Program.cs:13
+    - kind: eventstore.projection
+      projection: src/Leasing/Leasing.csproj|T:Leasing.Lease
+      lifecycle: inline
+      events: '["dotnet:src/Leasing/Leasing.csproj:T:Leasing.LeaseCreated"]'
+      at: src/Leasing/Program.cs:14
+    - kind: data.table
+      entity: src/Leasing/Leasing.csproj|T:Leasing.LeaseDocument
+      table: mt_doc_lease_documents
+      store: marten-document
+      tableSource: literal
+      at: src/Leasing/Program.cs:15
+    - kind: data.table
+      entity: src/Leasing/Leasing.csproj|T:Leasing.Customer
+      table: mt_doc_customer
+      tableSource: convention
+      at: src/Leasing/Handlers.cs:13
+    - kind: realtime.hub
+      hub: src/Leasing/Leasing.csproj|T:Leasing.NotificationsHub
+      route: /hubs/notifications
+      resolution: exact
+      at: src/Leasing/Program.cs:21
+    - kind: realtime.send
+      hub: src/Leasing/Leasing.csproj|T:Leasing.NotificationsHub
+      method: leaseApproved
+      audience: all
+      resolution: exact
+      at: src/Leasing/Handlers.cs:23
+    - kind: realtime.send
+      hub: src/Leasing/Leasing.csproj|T:Leasing.NotificationsHub
+      method: joined
+      audience: group
+      resolution: exact
+      at: src/Leasing/Handlers.cs:36
+    - kind: search.index
+      document: src/Leasing/Leasing.csproj|T:Leasing.LeaseDocument
+      operation: index
+      index:
+        name: leases
+        nameSource: literal
+      resolution: exact
+      at: src/Leasing/Handlers.cs:30
+    - kind: search.index
+      document: src/Leasing/Leasing.csproj|T:Leasing.Customer
+      operation: search
+      index:
+        name: customers-v2
+        nameSource: configuration
+        configurationKey: Search:CustomerIndex
+      resolution: exact
+      at: src/Leasing/Program.cs:23
+links:
+  - inprocess dispatches_to exact src/Leasing/Program.cs:22 -> src/Leasing/Handlers.cs:7
+  - inprocess dispatches_to exact src/Leasing/Handlers.cs:15 -> src/Leasing/Handlers.cs:20
+  - inprocess dispatches_to exact src/Leasing/Handlers.cs:15 -> src/Leasing/Handlers.cs:26
+  - di consumes_contract exact src/Leasing/Handlers.cs:26 -> src/Leasing/Program.cs:17
+secretsAbsent:
+  - leasing-db-password-42

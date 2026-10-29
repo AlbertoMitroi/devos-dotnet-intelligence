@@ -96,7 +96,8 @@ public static class AnalyzeRunner
             stage.Restart();
             events.Emit("stage.start", new JsonObject { ["stage"] = "adapters" });
             var conventions = Conventions.Load(options.ConfigPath);
-            var suggestions = AdapterRunner.Run(analysis.Semantic, analysis.Graph, analysis.Files, analysis.Identity, workingCopy.Files, conventions, cancellationToken);
+            var adapters = AdapterRunner.Run(analysis.Semantic, analysis.Contexts, analysis.Graph, analysis.Files, analysis.Identity, workingCopy.Files, conventions, cancellationToken);
+            var suggestions = adapters.Suggestions;
             EndStage(events, stages, "adapters", stage);
 
             stage.Restart();
@@ -109,13 +110,14 @@ public static class AnalyzeRunner
             diagnostics.AddRange(workingCopy.Diagnostics);
             diagnostics.AddRange(discovery.Diagnostics);
             diagnostics.AddRange(analysis.Diagnostics);
+            diagnostics.AddRange(adapters.Diagnostics);
             if (configurationHash is not null)
             {
                 diagnostics.Add(conventions.IsEmpty
                     ? new AnalysisDiagnostic(DiagnosticSeverity.Warning, "configuration-not-applied", "repository", DiagnosticState.Unsupported,
-                        "The configuration file has no recognized section (messaging: publish, subscribe, handlerInterfaces); nothing was applied.")
+                        "The configuration file has no recognized section (messaging, workflow, realtime); nothing was applied.")
                     : new AnalysisDiagnostic(DiagnosticSeverity.Info, "configuration-applied", "repository", DiagnosticState.Partial,
-                        $"Messaging conventions applied: {conventions.Messaging.Publish.Count} publish, {conventions.Messaging.Subscribe.Count} subscribe, {conventions.Messaging.HandlerInterfaces.Count} handler interfaces; contract identity '{conventions.Messaging.ContractIdentity}'."));
+                        $"Conventions applied: messaging {conventions.Messaging.Publish.Count} publish, {conventions.Messaging.Subscribe.Count} subscribe, {conventions.Messaging.HandlerInterfaces.Count} handler interfaces, contract identity '{conventions.Messaging.ContractIdentity}'; workflow {conventions.Workflow.Handlers.Count} handler interfaces, {conventions.Workflow.Metadata.NodeFields.Count} metadata fields; realtime {conventions.Realtime.Send.Count} send helpers."));
             }
             var unresolvedLinks = links.Count(l => (string)l["resolution"]! == "unresolved");
             if (unresolvedLinks > 0)
@@ -135,7 +137,8 @@ public static class AnalyzeRunner
             events.Emit("stage.start", new JsonObject { ["stage"] = "artifacts" });
             var graph = analysis.Graph;
             var diagnosticRecords = diagnostics.Select(d => d.ToJson()).GroupBy(d => (string)d["id"]!, StringComparer.Ordinal).Select(g => g.First()).ToList();
-            generation.WriteNdjson("graph/projects.ndjson", analysis.Projects.Concat(analysis.Contexts));
+            generation.WriteNdjson("graph/projects.ndjson", analysis.Projects.Concat(analysis.Contexts)
+                .Concat(adapters.RepositoryContext is { } repositoryContext ? [repositoryContext] : []));
             generation.WriteNdjson("graph/entities.ndjson", graph.Entities);
             generation.WriteNdjson("graph/declarations.ndjson", graph.Declarations);
             generation.WriteNdjson("graph/relations.ndjson", graph.Relations);
@@ -202,7 +205,8 @@ public static class AnalyzeRunner
                     ["format"] = s.Format,
                     ["resolvedSdk"] = analysis.Preflight.FirstOrDefault(p => p.SolutionPath == s.Path)?.ResolvedSdk,
                 }).ToArray()),
-                ["analysisContexts"] = new JsonArray(contexts.Select(c => (string)c["id"]!).Order(StringComparer.Ordinal).Select(n => (JsonNode)n).ToArray()),
+                ["analysisContexts"] = new JsonArray(contexts.Select(c => (string)c["id"]!).Concat(adapters.RepositoryContext is { } rc ? [(string)rc["id"]!] : [])
+                    .Order(StringComparer.Ordinal).Select(n => (JsonNode)n).ToArray()),
                 ["coverage"] = coverage,
             };
 

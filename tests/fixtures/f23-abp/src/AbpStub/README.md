@@ -1,0 +1,1 @@
+A stand-in for the ABP Framework API with the same namespaces and member names, so the ABP adapter is tested without downloading ABP (as the Aspire stub of fixture 8). Real ABP is covered by the eShopOnAbp run.

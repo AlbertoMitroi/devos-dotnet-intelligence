@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions" targetNamespace="http://example.invalid/bpmn">
+  <bpmn:message id="Msg_Signed" name="LeaseSigned" />
+  <bpmn:process id="LeaseProcess" name="Lease" isExecutable="true">
+    <bpmn:laneSet id="Lanes">
+      <bpmn:lane id="Lane_Underwriter" name="Leasing:Underwriter">
+        <bpmn:flowNodeRef>Task_Approve</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start" name="Lease requested" />
+    <bpmn:serviceTask id="Task_Credit" name="Run credit check" />
+    <bpmn:exclusiveGateway id="Gateway_Score" name="Score ok?" />
+    <bpmn:userTask id="Task_Approve" name="Approve lease" />
+    <bpmn:serviceTask id="Task_Contract" name="Send contract" />
+    <bpmn:intermediateCatchEvent id="Event_Signed" name="Lease signed">
+      <bpmn:messageEventDefinition id="Def_Signed" messageRef="Msg_Signed" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="End" name="Lease active" />
+    <bpmn:sequenceFlow id="F1" sourceRef="Start" targetRef="Task_Credit" />
+    <bpmn:sequenceFlow id="F2" sourceRef="Task_Credit" targetRef="Gateway_Score" />
+    <bpmn:sequenceFlow id="F3" name="yes" sourceRef="Gateway_Score" targetRef="Task_Approve">
+      <bpmn:conditionExpression>${score &gt;= 600}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F4" sourceRef="Task_Approve" targetRef="Task_Contract" />
+    <bpmn:sequenceFlow id="F5" sourceRef="Task_Contract" targetRef="Event_Signed" />
+    <bpmn:sequenceFlow id="F6" sourceRef="Event_Signed" targetRef="End" />
+  </bpmn:process>
+</bpmn:definitions>

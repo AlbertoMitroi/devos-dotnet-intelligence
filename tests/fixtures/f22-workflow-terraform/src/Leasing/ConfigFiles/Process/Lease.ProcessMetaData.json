@@ -1,0 +1,9 @@
+{
+  "Process": "LeaseProcess",
+  "Tasks": [
+    {
+      "Id": "Task_Credit",
+      "Plugin": "CreditCheckPlugin"
+    }
+  ]
+}
