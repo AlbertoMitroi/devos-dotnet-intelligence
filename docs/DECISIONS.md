@@ -164,3 +164,11 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 - **Revisit:** before Gate 2 is declared passed: generate the types and switch the writers to them.
 - **Status:** accepted as an open gap, reported in the Step 3 report.
 
+## D20: Aspire stub in fixture 8
+
+- **Context:** fixture 8 needs an Aspire AppHost. The Aspire hosting packages are large and pull platform-specific dependencies on every test-stage build.
+- **Options:** real Aspire packages; a small stub project in the fixture with the Aspire namespaces and member names the topology adapter matches.
+- **Choice:** the stub (`tests/fixtures/f08-http-aspire/src/AspireStub`). The adapter recognizes resolved symbols by full name, so the stub exercises the same code path. Real Aspire is covered by the eShop run (24 resources in its AppHost).
+- **Revisit:** if the adapter starts depending on Aspire behaviour beyond names and signatures.
+- **Status:** accepted.
+

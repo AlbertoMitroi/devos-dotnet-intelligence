@@ -156,37 +156,37 @@ Columns: requirement id, prompt section, planned code, planned test or recorded 
 | R3.5 | NDJSON events on stdout, logs on stderr, workflow annotations in Actions | 4.1 | `Cli/EventWriter` | `EventStreamTests` (every stdout line parses) | pending |
 | R3.6 | Exit codes 0, 10, 20, 30, 40, 50, 1 | 4.1 | `Cli/ExitCodes` | one test per code | pending |
 | R3.7 | SIGTERM: graceful stop, no manifest | 4.1 | `Cli/CancellationHost` | `CancellationTests` send SIGTERM mid-run | pending |
-| R3.8 | Discovery of `.slnx`, `.sln`, `.slnf`; project once per context; primary TFM default; more through config | 4.2.2 | `Analysis/SolutionDiscovery` | fixtures 3, 4 | pending |
-| R3.9 | SDK per `global.json`; `unsupported-sdk` blocks only that solution; compiler version recorded | 4.2.3 | `Analysis/SdkResolver` | fixture 15 (a `global.json` pinned to SDK 9 is unsupported in the first image) + a two-solution fixture (one solution blocked, one analysed) | pending |
-| R3.10 | Restore into `/cache`; failures reported, run continues; `--offline` with `--network none` | 4.2.4, 2.2 | `Analysis/RestoreRunner` | fixtures 13, 14; offline rerun test | pending |
-| R3.11 | Analyzer and generator Roslyn versions from `project.assets.json`; newer than engine flagged | 4.2.5 | `Analysis/AnalyzerCompatibility` | fixture 12 with a generator referencing a newer Roslyn | pending |
-| R3.12 | Workspace load: `WorkspaceFailed`, CS8032, zero generated documents, compile error counts, load mode | 4.2.6 | `Analysis/WorkspaceLoader` | fixtures 12 to 14 | pending |
-| R3.13 | Entities and declarations, all partial parts, partial members, generated documents with generator name | 4.2.7 | `Analysis/DocumentExtractor` | fixtures 1, 12 | pending |
-| R3.14 | References with usage kind | 4.2.7 | `DocumentExtractor` (IOperation) | fixtures 2, 3 + `SymbolFinder` cross-check | pending |
-| R3.15 | `calls_declared_target` incl. constructors and extension methods | 4.2.7 | `DocumentExtractor` | fixture 2 | pending |
-| R3.16 | `inherits`, `implements`, `overrides` | 4.2.7 | `DocumentExtractor` | fixture 5 | pending |
-| R3.17 | `possible_runtime_target` after the pass | 4.2.7 | `Analysis/DispatchResolver` | fixture 5 | pending |
-| R3.18 | Syntax fallback, method `syntax` | 4.2.8 | `Analysis/SyntaxFallbackExtractor` | fixtures 13, 14 | pending |
-| R3.19 | DI registrations (all forms), extension methods across projects with path, conditional; consumers | 4.3 | `Adapters/DependencyInjection` | fixture 6 | pending |
-| R3.20 | ASP.NET Core controllers and minimal APIs, `MapGroup`, folded constants, versioning in extensions | 4.3 | `Adapters/AspNetCore` | fixture 7 | pending |
-| R3.21 | HTTP client templates, base-address reference, unresolved with reason | 4.3 | `Adapters/HttpClients` | fixture 8 | pending |
-| R3.22 | gRPC: `.proto` roles, `grpc.service`, `grpc.call`, client address reference | 4.3 | `Adapters/Grpc` | fixture 9 | pending |
-| R3.23 | Messaging candidates, caller convention file as exact `configured-convention`, `suggested-conventions.yml` | 4.3 | `Adapters/Messaging`, `ConventionFile` | fixture 10 with and without conventions | pending |
-| R3.24 | Configuration keys with secret flag; values never stored | 4.3, 1.4.6 | `Adapters/Configuration` | fixture 11 + sentinel value grep over the whole output | pending |
-| R3.25 | Aspire resources and `WithReference` | 4.3 | `Adapters/Topology` | fixture 8 | pending |
-| R3.26 | `DbContext` and `DbSet<T>` as `data.maps_to` | 4.3 | `Adapters/Data` | fixture 6 or a dedicated EF fixture | pending |
-| R3.27 | Direct and transitive packages, central package management, used external API per package | 4.4 | `Adapters/Packages` | fixture 2 (CPM) | pending |
+| R3.8 | Discovery of `.slnx`, `.sln`, `.slnf`; project once per context; primary TFM default; more through config | 4.2.2 | `Analysis/SolutionDiscovery` | fixtures 3, 4 | partial: .slnx, .sln, .slnf discovery and once-per-context pass (f03, eShop); secondary target frameworks reported, not analyzed (f04) |
+| R3.9 | SDK per `global.json`; `unsupported-sdk` blocks only that solution; compiler version recorded | 4.2.3 | `Analysis/SdkResolver` | fixture 15 (a `global.json` pinned to SDK 9 is unsupported in the first image) + a two-solution fixture (one solution blocked, one analysed) | pass for SDK 10: f15 blocked with unsupported-sdk, exit 20; two-solution fixture not written |
+| R3.10 | Restore into `/cache`; failures reported, run continues; `--offline` with `--network none` | 4.2.4, 2.2 | `Analysis/RestoreRunner` | fixtures 13, 14; offline rerun test | partial: restore into /cache, failures reported and run continues (f13, f14); offline rerun not tested |
+| R3.11 | Analyzer and generator Roslyn versions from `project.assets.json`; newer than engine flagged | 4.2.5 | `Analysis/AnalyzerCompatibility` | fixture 12 with a generator referencing a newer Roslyn | implemented (analyzer-requires-newer-roslyn); no fixture exercises it |
+| R3.12 | Workspace load: `WorkspaceFailed`, CS8032, zero generated documents, compile error counts, load mode | 4.2.6 | `Analysis/WorkspaceLoader` | fixtures 12 to 14 | pass: f12 (compilation errors when the generator is missing), f13 (workspace failure), f14 |
+| R3.13 | Entities and declarations, all partial parts, partial members, generated documents with generator name | 4.2.7 | `Analysis/DocumentExtractor` | fixtures 1, 12 | pass: f01 (three files, partial method, RegexGenerator part), f03; eShop |
+| R3.14 | References with usage kind | 4.2.7 | `DocumentExtractor` (IOperation) | fixtures 2, 3 + `SymbolFinder` cross-check | pass: f02 (usage kinds other and invocation); write/read/nameof/typeof/attribute only on eShop counts |
+| R3.15 | `calls_declared_target` incl. constructors and extension methods | 4.2.7 | `DocumentExtractor` | fixture 2 | pass: f02 (overloads, extension method) |
+| R3.16 | `inherits`, `implements`, `overrides` | 4.2.7 | `DocumentExtractor` | fixture 5 | pass: f05 |
+| R3.17 | `possible_runtime_target` after the pass | 4.2.7 | `Analysis/DispatchResolver` | fixture 5 | pass: f05 |
+| R3.18 | Syntax fallback, method `syntax` | 4.2.8 | `Analysis/SyntaxFallbackExtractor` | fixtures 13, 14 | pass: f14, f15 |
+| R3.19 | DI registrations (all forms), extension methods across projects with path, conditional; consumers | 4.3 | `Adapters/DependencyInjection` | fixture 6 | pass: f06 (all forms, keyed, factory, TryAdd, hosted, typed client, conditional, extension in another project, GetRequiredService) |
+| R3.20 | ASP.NET Core controllers and minimal APIs, `MapGroup`, folded constants, versioning in extensions | 4.3 | `Adapters/AspNetCore` | fixture 7 | pass: f07 (nested MapGroup through locals, folded constant, MapMethods, attribute and conventional routes); API versions only on eShop |
+| R3.21 | HTTP client templates, base-address reference, unresolved with reason | 4.3 | `Adapters/HttpClients` | fixture 8 | pass: f08 (template from readonly field, base address, unresolved with reason) |
+| R3.22 | gRPC: `.proto` roles, `grpc.service`, `grpc.call`, client address reference | 4.3 | `Adapters/Grpc` | fixture 9 | pass: f09 (real Grpc packages 2.84.0) |
+| R3.23 | Messaging candidates, caller convention file as exact `configured-convention`, `suggested-conventions.yml` | 4.3 | `Adapters/Messaging`, `ConventionFile` | fixture 10 with and without conventions | pass: f10 without and with conventions; suggested-conventions.yml not asserted |
+| R3.24 | Configuration keys with secret flag; values never stored | 4.3, 1.4.6 | `Adapters/Configuration` | fixture 11 + sentinel value grep over the whole output | pass: f11 (secret flags, no value in the generation) |
+| R3.25 | Aspire resources and `WithReference` | 4.3 | `Adapters/Topology` | fixture 8 | pass: f08 with an Aspire stub (D20); real Aspire on eShop |
+| R3.26 | `DbContext` and `DbSet<T>` as `data.maps_to` | 4.3 | `Adapters/Data` | fixture 6 or a dedicated EF fixture | implemented; checked on eShop only (9 data.maps_to), no fixture |
+| R3.27 | Direct and transitive packages, central package management, used external API per package | 4.4 | `Adapters/Packages` | fixture 2 (CPM) | partial: packages and used package API in project records; no fixture asserts them |
 | R3.28 | Canonical NDJSON, redacted snippets, diagnostics | 4.2.10 | `Contracts/CanonicalJson`, `Analysis/SnippetRedactor` | `CanonicalJsonTests`, `RedactionTests` | pending |
 | R3.29 | `SymbolFinder` only as test cross-check | 4.2 | tests only | `NoSymbolFinderInProductTest` (reflection over product assemblies) | pending |
 | R3.30 | No knowledge of analysed repositories in the engine | 1.4.2 | | `NoRepositoryKnowledgeTest`: names from `tests/eshop/ground-truth.yml` absent from `src/` | pending |
 | R3.31 | Processes started with argument arrays only | 1.4.8 | `Analysis/ProcessRunner` | fixture with shell metacharacters in paths; analyzer rule banning `ProcessStartInfo.Arguments` | pending |
 | R3.32 | Analysed repository read-only | 1.4.7 | `/src` ro mount, `WorkingCopyExporter` | `MountContractTest` (R1.6) + hash of `/src` before and after | pending |
-| R3.33 | Fixtures 1 to 15, own `global.json` (≥1 SDK 9, ≥1 SDK 10), fixed Git dates, `expected.yml` with evidence; full precision and recall | 4.5 | `tests/fixtures/` | `FixtureTests` | pending; fixtures pinned to SDK 10 first, the SDK 9 fixture arrives with slice 9b (D15) |
-| G3.1 | All fixtures pass in the image on both architectures | Gate 3 | | CI matrix | pending |
-| G3.2 | Partial types are one entity with every declaration; generated parts carry their generator | Gate 3 | | fixture 1 | pending |
-| G3.3 | Two runs per fixture byte-identical, also across amd64 and arm64 | Gate 3 | | `DeterminismTests` + CI comparison | pending |
-| G3.4 | Failures and unsupported cases reported with reasons, never stop the run | Gate 3 | | fixtures 13 to 15 in one combined repository | pending |
-| G3.5 | `docs/reports/step-3-extractor.md` | Gate 3 | | | pending |
+| R3.33 | Fixtures 1 to 15, own `global.json` (≥1 SDK 9, ≥1 SDK 10), fixed Git dates, `expected.yml` with evidence; full precision and recall | 4.5 | `tests/fixtures/` | `FixtureTests` | pass for SDK 10: fixtures 1 to 15 with hand-written expected.yml and set comparison in both directions; SDK 9 fixture deferred (D15) |
+| G3.1 | All fixtures pass in the image on both architectures | Gate 3 | | CI matrix | pass: test stage on amd64 and arm64 in CI (see report) |
+| G3.2 | Partial types are one entity with every declaration; generated parts carry their generator | Gate 3 | | fixture 1 | pass: f01 |
+| G3.3 | Two runs per fixture byte-identical, also across amd64 and arm64 | Gate 3 | | `DeterminismTests` + CI comparison | pass: verify.sh two runs per fixture; CI byte comparison amd64 vs arm64 |
+| G3.4 | Failures and unsupported cases reported with reasons, never stop the run | Gate 3 | | fixtures 13 to 15 in one combined repository | pass: f12 to f15 report and continue |
+| G3.5 | `docs/reports/step-3-extractor.md` | Gate 3 | | | docs/reports/step-3-fixtures.md and docs/reports/step-3-graph.md |
 
 ### Step 4: artifact builder
 
