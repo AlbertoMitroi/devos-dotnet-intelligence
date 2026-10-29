@@ -53,10 +53,10 @@ foreach ($repo in Get-ChildItem -Directory (Join-Path $work 'repos')) {
     foreach ($run in 1, 2) {
         $out = Join-Path $work "out/$name-$run"
         New-Item -ItemType Directory -Force -Path $out | Out-Null
-        $arguments = @('run', '--rm', '--network', 'none') + (UserArgs) + @('-v', "$($repo.FullName):/src:ro", '-v', "${out}:/out",
+        $arguments = @('run', '--rm') + (UserArgs) + @('-v', "$($repo.FullName):/src:ro", '-v', "${out}:/out",
             $tag, 'analyze', '--src', '/src', '--out', '/out')
         & docker @arguments | Set-Content -Path (Join-Path $work "out/$name-$run.events.ndjson")
-        if ($LASTEXITCODE -ne 10) { throw "analyze $name run ${run}: exit code $LASTEXITCODE, expected 10 (partial)" }
+        if ($LASTEXITCODE -ne 0) { throw "analyze $name run ${run}: exit code $LASTEXITCODE, expected 0 (complete)" }
         if (-not (Test-Path (Join-Path $out 'manifest.json'))) { throw "analyze $name run ${run}: no manifest" }
     }
     # Byte comparison inside the image, so the check is the same on every host.
@@ -76,7 +76,7 @@ New-Item -ItemType File -Force -Path (Join-Path $workspace 'github-output') | Ou
     "$tag-action" gha | Set-Content -Path (Join-Path $work 'action.log')
 if ($LASTEXITCODE -ne 0) { throw "gha exit code $LASTEXITCODE" }
 $outputs = Get-Content (Join-Path $workspace 'github-output')
-foreach ($expected in 'status=partial', 'manifest-path=intelligence-out/manifest.json') {
+foreach ($expected in 'status=complete', 'manifest-path=intelligence-out/manifest.json') {
     if ($outputs -notcontains $expected) { throw "GitHub output lacks $expected" }
 }
 if (-not (Test-Path (Join-Path $workspace 'intelligence-out/manifest.json'))) { throw 'action wrote no manifest' }

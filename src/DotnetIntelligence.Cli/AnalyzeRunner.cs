@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json.Nodes;
 using DotnetIntelligence.Analysis;
+using DotnetIntelligence.Analysis.Extraction;
 using DotnetIntelligence.Artifacts;
 using DotnetIntelligence.Contracts;
 
@@ -27,9 +28,8 @@ public sealed record AnalyzeOutcome(
     IReadOnlyList<AnalysisDiagnostic> Diagnostics);
 
 /// <summary>
-/// The analyze pipeline. Engine 0.1.0 runs stage 1 (working copy) and stage 2 (discovery) of 4.2 and
-/// finalizes the generation; semantic extraction is not part of this version, so every generation is
-/// "partial" and every project is "not-analyzed".
+/// The analyze pipeline (4.2): working copy, discovery, preflight, restore, load, extraction, syntax fallback,
+/// then the artifacts (graph, snippets, generated sources, context packs), manifest.json last and run.json.
 /// </summary>
 public static class AnalyzeRunner
 {
@@ -80,17 +80,29 @@ public static class AnalyzeRunner
             var discovery = SolutionDiscovery.Discover(workingCopy.Root, workingCopy.Files, options.Solution);
             EndStage(events, stages, "discovery", stage);
 
+            var inventory = await SdkInventory.ReadAsync(cancellationToken).ConfigureAwait(false);
+            var scrubber = new SecretScrubber(environment);
+            var analysis = await RepositoryAnalyzer.RunAsync(
+                workingCopy, discovery, inventory, options.NuGetPackagesDirectory, $"dotnet-intelligence.roslyn@{EngineInfo.Version}", scrubber,
+                name => events.Emit("stage.start", new JsonObject { ["stage"] = name }),
+                timing =>
+                {
+                    stages.Add(new JsonObject { ["name"] = timing.Name, ["elapsedMs"] = timing.ElapsedMilliseconds });
+                    events.Emit("stage.end", new JsonObject { ["stage"] = timing.Name, ["elapsedMs"] = timing.ElapsedMilliseconds });
+                },
+                cancellationToken).ConfigureAwait(false);
+
             var diagnostics = new List<AnalysisDiagnostic>();
             diagnostics.AddRange(workingCopy.Diagnostics);
             diagnostics.AddRange(discovery.Diagnostics);
-            diagnostics.Add(new AnalysisDiagnostic(DiagnosticSeverity.Info, "extraction-not-available", "repository", DiagnosticState.Partial,
-                $"Engine {EngineInfo.Version} performs working-copy export and solution discovery only; semantic extraction is not part of this version."));
+            diagnostics.AddRange(analysis.Diagnostics);
             if (configurationHash is not null)
             {
                 diagnostics.Add(new AnalysisDiagnostic(DiagnosticSeverity.Info, "configuration-not-applied", "repository", DiagnosticState.Unsupported,
-                    $"Engine {EngineInfo.Version} records the configuration hash but does not apply configuration."));
+                    $"Engine {EngineInfo.Version} records the configuration hash but does not apply configuration yet."));
             }
-            foreach (var diagnostic in diagnostics)
+            diagnostics = diagnostics.Select(d => d with { Message = scrubber.Scrub(d.Message) }).ToList();
+            foreach (var diagnostic in diagnostics.Where(d => d.Severity != DiagnosticSeverity.Info))
             {
                 var fields = diagnostic.ToJson();
                 fields.Remove("id");
@@ -99,18 +111,51 @@ public static class AnalyzeRunner
 
             stage.Restart();
             events.Emit("stage.start", new JsonObject { ["stage"] = "artifacts" });
-            var projectRecords = discovery.Projects.Select(p => new JsonObject
+            var graph = analysis.Graph;
+            var diagnosticRecords = diagnostics.Select(d => d.ToJson()).GroupBy(d => (string)d["id"]!, StringComparer.Ordinal).Select(g => g.First()).ToList();
+            generation.WriteNdjson("graph/projects.ndjson", analysis.Projects.Concat(analysis.Contexts));
+            generation.WriteNdjson("graph/entities.ndjson", graph.Entities);
+            generation.WriteNdjson("graph/declarations.ndjson", graph.Declarations);
+            generation.WriteNdjson("graph/relations.ndjson", graph.Relations);
+            generation.WriteNdjson("graph/evidence.ndjson", graph.Evidence);
+            generation.WriteNdjson("graph/observations.ndjson", graph.Observations);
+            generation.WriteNdjson("graph/links.ndjson", []);
+            generation.WriteNdjson("graph/diagnostics.ndjson", diagnosticRecords);
+            generation.WriteNdjson("snippets.ndjson", graph.Snippets);
+            foreach (var (path, content) in graph.GeneratedFiles.OrderBy(f => f.Key, StringComparer.Ordinal))
             {
-                ["id"] = ProjectId(p.Path),
-                ["path"] = p.Path,
-                ["solutions"] = new JsonArray(p.Solutions.Select(s => (JsonNode)JsonValue.Create(s)!).ToArray()),
-            }).ToList();
-            generation.WriteNdjson("graph/projects.ndjson", projectRecords);
-            generation.WriteNdjson("graph/diagnostics.ndjson", diagnostics.Select(d => d.ToJson()));
+                generation.WriteBytes(path, content);
+            }
 
-            var inventory = await SdkInventory.ReadAsync(cancellationToken).ConfigureAwait(false);
-            const string status = "partial";
-            var coverage = Coverage(discovery.Projects);
+            var contexts = analysis.Contexts;
+            var semantic = contexts.Count(c => (string)c["loadMode"]! == "semantic");
+            var syntax = contexts.Count(c => (string)c["loadMode"]! == "syntax");
+            var failed = contexts.Count(c => (string)c["loadMode"]! == "failed");
+            var incomplete = diagnostics.Any(d => d.State is DiagnosticState.Failed or DiagnosticState.Partial or DiagnosticState.Unsupported && d.Severity != DiagnosticSeverity.Info);
+            var status = semantic + syntax == 0 && discovery.Projects.Count > 0 ? "failed"
+                : semantic == contexts.Count && !incomplete ? "complete"
+                : "partial";
+            var exitCode = analysis.AllBlocked ? ExitCodes.PreflightBlocked
+                : status == "failed" ? ExitCodes.NothingLoaded
+                : status == "complete" ? ExitCodes.Complete
+                : ExitCodes.Partial;
+            var coverage = new JsonObject
+            {
+                ["projects"] = new JsonArray(contexts.Select(c => (JsonNode)new JsonObject
+                {
+                    ["project"] = (string)c["projectId"]!,
+                    ["path"] = (string)c["project"]!,
+                    ["state"] = (string)c["loadMode"]!,
+                }).OrderBy(n => (string)n!["path"]!, StringComparer.Ordinal).ToArray()),
+                ["summary"] = new JsonObject
+                {
+                    ["total"] = contexts.Count,
+                    ["semantic"] = semantic,
+                    ["syntax"] = syntax,
+                    ["failed"] = failed,
+                    ["notAnalyzed"] = discovery.Projects.Count - contexts.Count,
+                },
+            };
             var manifest = new JsonObject
             {
                 ["schemaVersion"] = EngineInfo.SchemaVersion,
@@ -129,10 +174,25 @@ public static class AnalyzeRunner
                 {
                     ["path"] = s.Path,
                     ["format"] = s.Format,
+                    ["resolvedSdk"] = analysis.Preflight.FirstOrDefault(p => p.SolutionPath == s.Path)?.ResolvedSdk,
                 }).ToArray()),
-                ["analysisContexts"] = new JsonArray(),
+                ["analysisContexts"] = new JsonArray(contexts.Select(c => (string)c["id"]!).Order(StringComparer.Ordinal).Select(n => (JsonNode)n).ToArray()),
                 ["coverage"] = coverage,
             };
+
+            var packs = ContextPackWriter.Render(new ContextPackWriter.Input(
+                manifest,
+                analysis.Projects.OrderBy(p => (string)p["path"]!, StringComparer.Ordinal).ToList(),
+                contexts,
+                graph.Entities.ToList(),
+                graph.Declarations.ToList(),
+                graph.Relations.ToList(),
+                diagnosticRecords.OrderBy(d => (string)d["id"]!, StringComparer.Ordinal).ToList()));
+            foreach (var (path, content) in packs)
+            {
+                generation.WriteBytes(path, System.Text.Encoding.UTF8.GetBytes(content));
+            }
+
             generation.WriteManifest(manifest);
             EndStage(events, stages, "artifacts", stage);
 
@@ -149,27 +209,40 @@ public static class AnalyzeRunner
                 ["startedAt"] = startedAt.ToString("O", CultureInfo.InvariantCulture),
                 ["finishedAt"] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture),
                 ["totalMs"] = total.ElapsedMilliseconds,
+                ["peakWorkingSetBytes"] = Process.GetCurrentProcess().PeakWorkingSet64,
                 ["stages"] = stages,
                 ["offline"] = options.Offline,
                 ["includeWorkingTree"] = options.IncludeWorkingTree,
                 ["shallow"] = workingCopy.Shallow,
                 ["nugetPackages"] = options.NuGetPackagesDirectory,
+                ["counts"] = new JsonObject
+                {
+                    ["entities"] = graph.Entities.Count(),
+                    ["declarations"] = graph.Declarations.Count(),
+                    ["relations"] = graph.Relations.Count(),
+                    ["evidence"] = graph.Evidence.Count(),
+                    ["snippets"] = graph.Snippets.Count(),
+                    ["generatedFiles"] = graph.GeneratedFiles.Count,
+                },
             });
 
             var manifestPath = Path.Combine(generation.Root, GenerationWriter.ManifestFileName);
             events.Emit("run.end", new JsonObject
             {
                 ["status"] = status,
-                ["exitCode"] = ExitCodes.Partial,
+                ["exitCode"] = exitCode,
                 ["manifest"] = manifestPath,
             });
-            return new AnalyzeOutcome(ExitCodes.Partial, status, manifestPath, discovery.Projects.Count, coverage, diagnostics);
+            return new AnalyzeOutcome(exitCode, status, manifestPath, discovery.Projects.Count, coverage, diagnostics);
         }
         finally
         {
-            if (Directory.Exists(workRoot))
+            foreach (var directory in new[] { workRoot, workRoot + "-home" })
             {
-                Directory.Delete(workRoot, recursive: true);
+                if (Directory.Exists(directory))
+                {
+                    Directory.Delete(directory, recursive: true);
+                }
             }
         }
     }

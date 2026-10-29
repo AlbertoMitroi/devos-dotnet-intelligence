@@ -3,6 +3,7 @@ using DotnetIntelligence.Cli;
 namespace DotnetIntelligence.IntegrationTests;
 
 /// <summary>R1.17 to R1.19: the gha command inside a simulated GitHub workspace.</summary>
+[Collection(AnalyzeCollection.Name)]
 public class GitHubActionModeIntegrationTests : IDisposable
 {
     private readonly TestRepositories _repos = new();
@@ -12,7 +13,7 @@ public class GitHubActionModeIntegrationTests : IDisposable
     private async Task<(int Code, Dictionary<string, string> Outputs, string Stdout)> RunAction(Dictionary<string, string?> inputs)
     {
         var workspace = Path.Combine(_repos.Root, "workspace");
-        if (!Directory.Exists(Path.Combine(workspace, "repo")))
+        if (!Directory.Exists(Path.Combine(workspace, "repo")) && inputs.GetValueOrDefault("INPUT_PATH") != "partial")
         {
             Directory.CreateDirectory(workspace);
             await _repos.FromFixtureAsync("f00-minimal", Path.Combine("workspace", "repo"));
@@ -40,15 +41,23 @@ public class GitHubActionModeIntegrationTests : IDisposable
         Assert.Equal(ExitCodes.Complete, code);
         Assert.Equal("out-a", outputs["generation-path"]);
         Assert.Equal("out-a/manifest.json", outputs["manifest-path"]);
-        Assert.Equal("partial", outputs["status"]);
-        Assert.Equal("""{"failed":0,"notAnalyzed":1,"semantic":0,"syntax":0,"total":1}""", outputs["coverage"]);
+        Assert.Equal("complete", outputs["status"]);
+        Assert.Equal("""{"failed":0,"notAnalyzed":0,"semantic":1,"syntax":0,"total":1}""", outputs["coverage"]);
         Assert.True(File.Exists(Path.Combine(_repos.Root, "workspace", "out-a", "manifest.json")));
     }
 
     [Fact]
     public async Task Fail_on_partial_fails_the_step_with_the_engine_exit_code()
     {
-        var (code, outputs, _) = await RunAction(new() { ["INPUT_PATH"] = "repo", ["INPUT_OUTPUT"] = "out-b", ["INPUT_FAIL-ON"] = "partial" });
+        var partial = Path.Combine(_repos.Root, "workspace", "partial");
+        Directory.CreateDirectory(Path.Combine(partial, "src", "B"));
+        await TestRepositories.Git(partial, ["init", "-q", "-b", "main"]);
+        // No TargetFramework: restore fails, the project falls back to syntax analysis, the generation is partial.
+        await File.WriteAllTextAsync(Path.Combine(partial, "src", "B", "B.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />\n");
+        await File.WriteAllTextAsync(Path.Combine(partial, "src", "B", "B.cs"), "class B {}\n");
+        await TestRepositories.CommitAllAsync(partial);
+
+        var (code, outputs, _) = await RunAction(new() { ["INPUT_PATH"] = "partial", ["INPUT_OUTPUT"] = "out-b", ["INPUT_FAIL-ON"] = "partial" });
 
         Assert.Equal(ExitCodes.Partial, code);
         Assert.Equal("partial", outputs["status"]);

@@ -45,6 +45,12 @@ public sealed class GenerationWriter
         CanonicalJson.WriteNdjson(stream, sorted);
     }
 
+    public void WriteBytes(string relativePath, byte[] content)
+    {
+        using var stream = Create(relativePath);
+        stream.Write(content);
+    }
+
     public void WriteJson(string relativePath, JsonNode document)
     {
         using var stream = Create(relativePath);

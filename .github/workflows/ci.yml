@@ -63,7 +63,7 @@ jobs:
           COVERAGE: ${{ steps.smoke.outputs.coverage }}
         run: |
           echo "status=$STATUS manifest=$MANIFEST generation=$GENERATION coverage=$COVERAGE"
-          test "$STATUS" = partial
+          test "$STATUS" = complete
           test "$GENERATION" = action-out
           test "$MANIFEST" = action-out/manifest.json
           test -f "$MANIFEST"

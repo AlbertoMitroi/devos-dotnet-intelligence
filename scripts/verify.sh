@@ -45,13 +45,13 @@ for repo in "$work"/repos/*/; do
   for run in 1 2; do
     mkdir -p "$work/out/$name-$run"
     set +e
-    docker run --rm --network none --user "$user" \
+    docker run --rm --user "$user" \
       -v "$repo:/src:ro" -v "$work/out/$name-$run:/out" \
       "$tag" analyze --src /src --out /out > "$work/out/$name-$run.events.ndjson"
     code=$?
     set -e
-    if [ "$code" -ne 10 ]; then
-      echo "analyze $name run $run: exit code $code, expected 10 (partial)" >&2
+    if [ "$code" -ne 0 ]; then
+      echo "analyze $name run $run: exit code $code, expected 0 (complete)" >&2
       exit 1
     fi
     test -f "$work/out/$name-$run/manifest.json"
@@ -70,7 +70,7 @@ docker run --rm --network none \
   -e INPUT_PATH=repo -e INPUT_OUTPUT=intelligence-out -e "INPUT_FAIL-ON=failed" \
   -v "$work/workspace:/github/workspace" -w /github/workspace \
   "$tag-action" gha > "$work/action.log"
-grep -qx 'status=partial' "$work/workspace/github-output"
+grep -qx 'status=complete' "$work/workspace/github-output"
 grep -qx 'manifest-path=intelligence-out/manifest.json' "$work/workspace/github-output"
 test -f "$work/workspace/intelligence-out/manifest.json"
 cat "$work/workspace/github-output"
