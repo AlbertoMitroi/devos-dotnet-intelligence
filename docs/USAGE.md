@@ -1,6 +1,6 @@
 # Usage
 
-**What it does today:** exports the committed state, resolves each solution's SDK, restores, loads every project with Roslyn (syntax fallback otherwise), and writes the graph, observations, links, snippets, generated sources, context packs, `manifest.json` (written last, after validation against [contract v1](CONTRACT.md)) and `run.json`. `verify <generation>` repeats the checks. Restore needs the network; mount `/cache` to keep packages between runs. `--config` takes a YAML file with messaging conventions (see `tests/eshop/conventions.yml`).
+**What it does today:** exports the committed state, resolves each solution's SDK, restores, loads every project with Roslyn (syntax fallback otherwise), and writes the graph, observations, links, snippets, generated sources, context packs, `manifest.json` (written last, after validation against [contract v1](CONTRACT.md)) and `run.json`. `verify <generation>` repeats the checks. Restore needs the network; mount `/cache` to keep packages between runs. `--config` takes a YAML file with conventions: `messaging` (publish, subscribe, handler interfaces; see `tests/eshop/conventions.yml`), `workflow` (plugin interfaces of an in-house workflow engine and how each names its BPMN node or flow event; `metadata.nodeFields` copied from `*.ProcessMetaData.json`; see `tests/fixtures/f22-workflow-terraform/conventions.yml`) and `realtime` (helpers over SignalR). Configuration values are stored only as destinations (D21).
 
 ## GitHub Action
 

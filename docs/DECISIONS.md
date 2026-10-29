@@ -172,3 +172,26 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 - **Revisit:** if the adapter starts depending on Aspire behaviour beyond names and signatures.
 - **Status:** accepted.
 
+
+## D21: Configuration values used as destinations (contract C3 / D20)
+
+- **Context:** topics, queues, exchanges, base addresses and hub routes usually come from configuration; without them messages and HTTP calls cannot be linked across repositories. Rule 1.4.6 says configuration values are never stored. The contract records the exception as decision C3 (D20 in the federation plan); this repository already used D20 for the Aspire stub, so the engine records it as D21.
+- **Choice:** a configuration value is stored only when an adapter uses it as a destination and neither the key nor any of its values looks secret (`SecretScrubber.LooksSecret`). It goes into that observation's `destination` (or `baseAddress`) with `nameSource: configuration`, `configurationKey`, `configurationFiles`, and `alternatives` when environment files disagree; the evidence of every configuration line used is added to the observation. A secret-looking destination keeps `name: null` and `secret: true`. Keys come from code only: `IConfiguration` indexers, `GetValue`, `GetSection` chains, `GetConnectionString`, and options classes bound with `Configure<T>`, `Bind`, `BindConfiguration` or `Get<T>`; values come from the `appsettings*.json` of the projects that run the code (the project and every project that references it). Every other configuration value stays out (`config.key` still stores keys only).
+- **Reason:** owner's decision, accepted on 2026-10-29 (`intelligence-contract` `fd582dc`).
+- **Revisit:** if a destination value is found to carry a secret the flag missed: tighten the flag, never drop the check.
+- **Status:** accepted (deviation from rule 1.4.6, as recorded in the contract).
+
+## D22: Files outside C# (BPMN, Terraform, proxy descriptions)
+
+- **Context:** contract v1.1 adds observations read from non-C# files. Observations need a project and an analysis context; the evidence `method` enum has no value for these readers.
+- **Choice:** a file belongs to the deepest project whose directory contains it; files outside every project belong to the repository scope: one extra analysis context (`project: "."`, `configuration: repository`, `loadMode: syntax`, `scope: repository`), listed in the manifest, with no project record and no coverage entry. Evidence uses the existing methods: `syntax` for BPMN XML and Terraform blocks, `config` for JSON read as data (`*.ProcessMetaData.json`, ABP `*generate-proxy.json`). XML is read with DTDs prohibited and no resolver; Terraform values are never read.
+- **Reason:** no contract change for the method enum; consumers already handle syntax-level and configuration evidence.
+- **Revisit:** if consumers need to tell the readers apart; a minor can add method values.
+- **Status:** accepted.
+
+## D23: Generic adapters and their fixture packages
+
+- **Context:** step 3b adds adapters by resolved symbol for MassTransit 8, MediatR, Marten, SignalR, Elasticsearch, EF Core tables, BPMN, workflow handler conventions, Terraform and ABP. Fixtures need the real libraries where possible.
+- **Choice:** fixtures use real packages: MassTransit `8.5.12` (9.x is commercially licensed; the target system uses 8), MediatR `12.5.0` (13 and later are commercially licensed; the target uses 12), Marten `9.55.0` (every Marten from 7.0.0 to 9.12.0 has the critical advisory GHSA-rfx3-98h7-v3xp; the adapter also matches Marten 8, whose event and projection APIs are declared in `Marten.*`, while 9 declares them in `JasperFx.Events.*`), Elastic.Clients.Elasticsearch `8.19.27`, EF Core Relational `10.0.14`. ABP uses a stub with ABP's names (fixture 23), as the Aspire stub (D20); real ABP 9.0.0 is covered by the eShopOnAbp run. Libraries with an adapter of their own are excluded from the generic messaging heuristics, so they never produce duplicate candidates.
+- **Reason:** exact matching by symbol needs the real symbols; licenses and advisories decide the versions.
+- **Status:** accepted.

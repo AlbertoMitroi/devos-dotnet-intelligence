@@ -37,6 +37,8 @@ public sealed class AbpAdapter
     private readonly List<(AdapterContext Context, string Kind, JsonObject Fields, List<string?> Evidence)> _messages = [];
     private readonly List<(string Assembly, string RootPath, string? Evidence)> _conventional = [];
     private readonly List<(AdapterContext Context, INamedTypeSymbol Service)> _applicationServices = [];
+    private readonly List<(string Entity, string? Evidence)> _autoEventSelectors = [];
+    private readonly List<(AdapterContext Context, ITypeSymbol Entity, ITypeSymbol Eto, string? Publisher, string? Evidence)> _etoMappings = [];
     private Func<string, IReadOnlyList<string>> _runners = p => [p];
     private Func<string, IReadOnlyList<string>> _dependencies = p => [p];
 
@@ -125,6 +127,51 @@ public sealed class AbpAdapter
         var containing = AdapterContext.FullName(method.ContainingType);
         if (!containing.StartsWith("Volo.Abp.", StringComparison.Ordinal))
         {
+            return;
+        }
+        if (method.Name is "AddDistributedEvent" or "AddLocalEvent" && containing.StartsWith("Volo.Abp.Domain.Entities.", StringComparison.Ordinal)
+            && AdapterContext.Argument(invocation, "eventData") is { Type: { SpecialType: SpecialType.None } aggregateEvent }
+            && context.IdOf(aggregateEvent) is { } aggregateEventId && context.EnclosingMember(invocation.Syntax, model) is { } raiser)
+        {
+            // Aggregate roots collect events; ABP publishes them when the unit of work saves the aggregate.
+            if (method.Name == "AddDistributedEvent")
+            {
+                lock (_gate) _messages.Add((context, "messaging.publish", new JsonObject
+                {
+                    ["contract"] = Contract(aggregateEvent, aggregateEventId),
+                    ["publisher"] = raiser,
+                    ["resolution"] = "exact",
+                    ["ext.dotnet.source"] = containing + ".AddDistributedEvent",
+                }, [context.Evidence(invocation.Syntax)]));
+            }
+            else
+            {
+                context.Observe("inprocess.send", new JsonObject
+                {
+                    ["request"] = aggregateEventId,
+                    ["sender"] = raiser,
+                    ["mechanism"] = "abp-local-event",
+                    ["pattern"] = "notification",
+                    ["resolution"] = "exact",
+                }, context.Evidence(invocation.Syntax));
+            }
+            return;
+        }
+        // AbpDistributedEntityEventOptions: AutoEventSelectors.Add<TEntity>() / AddAll() and EtoMappings.Add<TEntity, TEto>().
+        if (method.Name is "Add" or "AddAll" && containing.StartsWith("Volo.Abp.Domain.Entities.Events.Distributed.", StringComparison.Ordinal))
+        {
+            var typeArguments = invocation.TargetMethod.TypeArguments;
+            lock (_gate)
+            {
+                if (containing.Contains("Selector", StringComparison.Ordinal))
+                {
+                    _autoEventSelectors.Add((method.Name == "AddAll" || typeArguments.Length == 0 ? "*" : context.IdOf(typeArguments[0]) ?? "?", context.Evidence(invocation.Syntax)));
+                }
+                else if (typeArguments.Length == 2)
+                {
+                    _etoMappings.Add((context, typeArguments[0], typeArguments[1], context.EnclosingMember(invocation.Syntax, model), context.Evidence(invocation.Syntax)));
+                }
+            }
             return;
         }
         if (method.Name == "PublishAsync" && invocation.Arguments.FirstOrDefault(a => a.Parameter?.Ordinal == 0) is { } argument
@@ -272,6 +319,32 @@ public sealed class AbpAdapter
 
     public void Emit()
     {
+        // Auto entity events: ABP publishes EntityCreated/Updated/DeletedEto<TEto> for every selected entity with an ETO mapping.
+        foreach (var (context, entity, eto, publisher, evidence) in _etoMappings)
+        {
+            var entityId = context.IdOf(entity);
+            var selectors = _autoEventSelectors.Where(s => s.Entity == "*" || s.Entity == entityId).ToList();
+            if (selectors.Count == 0 || publisher is null)
+            {
+                continue;
+            }
+            foreach (var name in new[] { "EntityCreatedEto", "EntityUpdatedEto", "EntityDeletedEto" })
+            {
+                if (context.Compilation.GetTypeByMetadataName($"Volo.Abp.Domain.Entities.Events.Distributed.{name}`1") is { } definition
+                    && definition.Construct(eto) is var constructed && context.IdOf(constructed) is { } constructedId)
+                {
+                    _messages.Add((context, "messaging.publish", new JsonObject
+                    {
+                        ["contract"] = Contract(constructed, constructedId),
+                        ["publisher"] = publisher,
+                        ["resolution"] = "exact",
+                        ["ext.dotnet.source"] = "Volo.Abp.Domain.Entities.Events.Distributed.AbpDistributedEntityEventOptions",
+                        ["ext.dotnet.via"] = "abp-auto-entity-event",
+                    }, [evidence, .. selectors.Select(s => s.Evidence)]));
+                }
+            }
+        }
+
         foreach (var (context, kind, fields, evidence) in _messages)
         {
             var copy = (JsonObject)fields.DeepClone();
@@ -419,19 +492,34 @@ public sealed class AbpAdapter
         return builder.ToString();
     }
 
-    /// <summary>ABP routes distributed events by event name: [EventName] or the full type name.</summary>
+    /// <summary>ABP routes distributed events by event name: [EventName], [GenericEventName] around the argument's name, or the full type name.</summary>
     private static JsonObject Contract(ITypeSymbol type, string id)
     {
-        var eventName = type.GetAttributes().FirstOrDefault(a => AdapterContext.FullName(a.AttributeClass) == "Volo.Abp.EventBus.EventNameAttribute")
-            ?.ConstructorArguments.FirstOrDefault().Value as string;
+        var (eventName, source) = EventName(type);
         return new JsonObject
         {
             ["entity"] = id,
             ["name"] = type.Name,
             ["fullName"] = AdapterContext.FullName(type),
-            ["identity"] = "name:" + (eventName ?? AdapterContext.FullName(type)),
-            ["ext.dotnet.eventNameSource"] = eventName is null ? "type" : "attribute",
+            ["identity"] = "name:" + eventName,
+            ["ext.dotnet.eventNameSource"] = source,
         };
+    }
+
+    internal static (string Name, string Source) EventName(ITypeSymbol type)
+    {
+        if (type.GetAttributes().FirstOrDefault(a => AdapterContext.FullName(a.AttributeClass) == "Volo.Abp.EventBus.EventNameAttribute")
+                ?.ConstructorArguments.FirstOrDefault().Value is string name)
+        {
+            return (name, "attribute");
+        }
+        if (type is INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: 1 } generic
+            && generic.OriginalDefinition.GetAttributes().FirstOrDefault(a => AdapterContext.FullName(a.AttributeClass) == "Volo.Abp.EventBus.GenericEventNameAttribute") is { } genericName)
+        {
+            string? Named(string key) => genericName.NamedArguments.FirstOrDefault(n => n.Key == key).Value.Value as string;
+            return (Named("Prefix") + EventName(generic.TypeArguments[0]).Name + Named("Postfix"), "generic-attribute");
+        }
+        return (type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)), "type");
     }
 
     private static INamedTypeSymbol? BaseGeneric(INamedTypeSymbol type, string definition)
