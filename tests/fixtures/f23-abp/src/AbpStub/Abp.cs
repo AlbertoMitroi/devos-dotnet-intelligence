@@ -58,9 +58,14 @@ namespace Volo.Abp.AspNetCore.Mvc.Conventions
         public string RemoteServiceName { get; set; } = "Default";
     }
 
-    public sealed class ConventionalControllerSettingList : List<ConventionalControllerSetting>
+    public sealed class ConventionalControllerSettingList : List<ConventionalControllerSetting>;
+
+    /// <summary>ABP 9 declares Create on the options type, not on the setting list.</summary>
+    public sealed class AbpConventionalControllerOptions
     {
-        public ConventionalControllerSettingList Create(Assembly assembly, Action<ConventionalControllerSetting>? optionsAction = null) => this;
+        public ConventionalControllerSettingList ConventionalControllerSettings { get; } = [];
+
+        public AbpConventionalControllerOptions Create(Assembly assembly, Action<ConventionalControllerSetting>? optionsAction = null) => this;
     }
 }
 
@@ -68,7 +73,7 @@ namespace Volo.Abp.AspNetCore.Mvc
 {
     public sealed class AbpAspNetCoreMvcOptions
     {
-        public Conventions.ConventionalControllerSettingList ConventionalControllers { get; } = [];
+        public Conventions.AbpConventionalControllerOptions ConventionalControllers { get; } = new();
     }
 }
 

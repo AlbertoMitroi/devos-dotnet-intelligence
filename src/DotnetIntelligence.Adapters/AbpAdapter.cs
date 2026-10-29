@@ -203,7 +203,7 @@ public sealed class AbpAdapter
             return;
         }
         // options.ConventionalControllers.Create(typeof(XModule).Assembly, o => o.RootPath = "x")
-        if (method.Name == "Create" && containing.EndsWith("ConventionalControllerSettingList", StringComparison.Ordinal)
+        if (method.Name == "Create" && containing == "Volo.Abp.AspNetCore.Mvc.Conventions.AbpConventionalControllerOptions"
             && AdapterContext.Argument(invocation, "assembly") is IPropertyReferenceOperation { Property.Name: "Assembly", Instance: ITypeOfOperation typeOf })
         {
             var (rootPath, constant, _) = context.AssignedInLambda(AdapterContext.Argument(invocation, "optionsAction"), "RootPath");
@@ -499,7 +499,9 @@ public sealed class AbpAdapter
         return new JsonObject
         {
             ["entity"] = id,
-            ["name"] = type.Name,
+            // EntityCreatedEto<ProductEto>, not EntityCreatedEto: the same-name fallback of the linker must not pair
+            // events of different entities (the entity id is the generic definition for every argument).
+            ["name"] = type is INamedTypeSymbol { IsGenericType: true } ? type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) : type.Name,
             ["fullName"] = AdapterContext.FullName(type),
             ["identity"] = "name:" + eventName,
             ["ext.dotnet.eventNameSource"] = source,
