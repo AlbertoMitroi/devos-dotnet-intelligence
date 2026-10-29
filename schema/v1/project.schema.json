@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/dotnet-intelligence/schema/v1/project.schema.json",
+  "title": "Project",
+  "type": "object",
+  "required": [
+    "id",
+    "recordType",
+    "path",
+    "solutions",
+    "targetFrameworks",
+    "projectReferences",
+    "packages"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^prj:[0-9a-f]{32}$"
+    },
+    "recordType": {
+      "const": "project"
+    },
+    "path": {
+      "type": "string"
+    },
+    "solutions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assemblyName": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "targetFrameworks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "resolvedSdk": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "projectReferences": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "direct"
+        ]
+      }
+    },
+    "usedPackageApi": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "package",
+          "version",
+          "symbols",
+          "usages"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true
+}

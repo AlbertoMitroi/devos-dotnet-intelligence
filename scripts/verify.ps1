@@ -62,6 +62,7 @@ foreach ($repo in Get-ChildItem -Directory (Join-Path $work 'repos')) {
     # Byte comparison inside the image, so the check is the same on every host.
     Invoke-Docker @('run', '--rm', '--entrypoint', 'diff', '-v', "$(Join-Path $work 'out'):/runs:ro", $tag, '-r', '-x', 'run.json', "/runs/$name-1", "/runs/$name-2")
     Write-Host "${name}: two runs identical"
+    Invoke-Docker @('run', '--rm', '-v', "$(Join-Path $work 'out'):/runs:ro", $tag, 'verify', "/runs/$name-1")
 }
 
 Step 'GitHub Action mode'

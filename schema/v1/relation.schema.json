@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/dotnet-intelligence/schema/v1/relation.schema.json",
+  "title": "Relation",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "from",
+    "to",
+    "context",
+    "resolution",
+    "evidence"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^rel:[0-9a-f]{32}$"
+    },
+    "kind": {
+      "type": "string",
+      "description": "v1 kinds are listed in docs/CONTRACT.md; unknown kinds from newer minors are kept and reported, not rejected (3.5)."
+    },
+    "from": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string"
+    },
+    "context": {
+      "type": "string",
+      "pattern": "^ctx:[0-9a-f]{32}$"
+    },
+    "resolution": {
+      "enum": [
+        "exact",
+        "ambiguous",
+        "candidate",
+        "unresolved"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ev:[0-9a-f]{32}$"
+      },
+      "minItems": 1
+    },
+    "usage": {
+      "enum": [
+        "read",
+        "write",
+        "invocation",
+        "nameof",
+        "typeof",
+        "attribute",
+        "other"
+      ]
+    },
+    "declaredTarget": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

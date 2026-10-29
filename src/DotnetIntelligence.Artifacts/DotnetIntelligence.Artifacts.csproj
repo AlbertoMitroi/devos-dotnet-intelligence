@@ -3,6 +3,10 @@
     <RootNamespace>DotnetIntelligence.Artifacts</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <!-- The contract travels with the engine, so verify works on any machine. -->
+    <EmbeddedResource Include="../../schema/v1/*.schema.json" LogicalName="schema/v1/%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../DotnetIntelligence.Contracts/DotnetIntelligence.Contracts.csproj" />
   </ItemGroup>
 </Project>

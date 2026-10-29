@@ -27,6 +27,14 @@ public sealed class SymbolIdentity
     /// <summary>Canonical symbol for identity: definitions instead of constructed generics and reduced extension methods.</summary>
     public static ISymbol? Normalize(ISymbol? symbol)
     {
+        // Members of anonymous types share documentation ids such as "P:.Id" across unrelated types: out of scope (D6).
+        for (var container = symbol?.ContainingType; container is not null; container = container.ContainingType)
+        {
+            if (container.IsAnonymousType)
+            {
+                return null;
+            }
+        }
         switch (symbol)
         {
             case null:

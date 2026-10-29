@@ -12,6 +12,7 @@ namespace DotnetIntelligence.Cli
             "Commands:\n" +
             "  version [--json]\n" +
             "  " + AnalyzeCommand.Usage + "\n" +
+            "  verify <generation>\n" +
             "  gha    (GitHub Docker container action mode; reads INPUT_* variables)\n";
 
         public static IReadOnlyDictionary<string, string?> ReadEnvironment()
@@ -39,6 +40,7 @@ namespace DotnetIntelligence.Cli
                     "version" => await VersionCommand.RunAsync(args[1..], stdout, environment, cancellationToken).ConfigureAwait(false),
                     "analyze" => await AnalyzeCommand.RunAsync(args[1..], events, environment, cancellationToken).ConfigureAwait(false),
                     "gha" => await GitHubActionMode.RunAsync(events, stdout, environment, cancellationToken).ConfigureAwait(false),
+                    "verify" => await VerifyCommand.RunAsync(args[1..], stdout, stderr).ConfigureAwait(false),
                     "help" or "--help" or "-h" => await WriteHelpAsync(stdout).ConfigureAwait(false),
                     _ => throw new UsageException(Help),
                 };

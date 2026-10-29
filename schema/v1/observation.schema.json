@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/dotnet-intelligence/schema/v1/observation.schema.json",
+  "title": "Observation",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "project",
+    "context",
+    "evidence"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^obs:[0-9a-f]{32}$"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "project": {
+      "type": "string"
+    },
+    "context": {
+      "type": "string",
+      "pattern": "^ctx:[0-9a-f]{32}$"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ev:[0-9a-f]{32}$"
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": true
+}

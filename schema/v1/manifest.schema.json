@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/dotnet-intelligence/schema/v1/manifest.schema.json",
+  "title": "Generation manifest",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "requiredCapabilities",
+    "status",
+    "engine",
+    "imageDigest",
+    "roslyn",
+    "sdks",
+    "repository",
+    "commit",
+    "dirty",
+    "configurationHash",
+    "analysisContexts",
+    "coverage",
+    "files"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "requiredCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "failed"
+      ]
+    },
+    "engine": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ]
+    },
+    "imageDigest": {
+      "type": "string"
+    },
+    "roslyn": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "build"
+      ]
+    },
+    "sdks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "version"
+        ]
+      }
+    },
+    "repository": {
+      "type": "object",
+      "required": [
+        "remoteUrl"
+      ]
+    },
+    "commit": {
+      "type": "string"
+    },
+    "objectFormat": {
+      "enum": [
+        "sha1",
+        "sha256"
+      ]
+    },
+    "dirty": {
+      "type": "boolean"
+    },
+    "configurationHash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "analysisContexts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ctx:[0-9a-f]{32}$"
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "projects",
+        "summary"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "sha256",
+          "size"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

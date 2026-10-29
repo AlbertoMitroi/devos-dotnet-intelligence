@@ -3,8 +3,7 @@ namespace DotnetIntelligence.UnitTests;
 /// <summary>R1.1: the repository layout of 2.1, for the parts that exist from Step 1 on.</summary>
 public class LayoutTests
 {
-    // Added by later steps (and asserted there): schema/v1, docs/CONTRACT.md (Step 2),
-    // tests/eshop and .github/workflows/eshop-validation.yml (Step 5).
+    // Added by Step 5 (and asserted there): .github/workflows/eshop-validation.yml.
     public static TheoryData<string> RequiredPaths => new()
     {
         "action.yml",
@@ -13,6 +12,9 @@ public class LayoutTests
         "scripts/verify.ps1",
         ".devcontainer/devcontainer.json",
         "global.json",
+        "schema/v1",
+        "docs/CONTRACT.md",
+        "tests/eshop/conventions.yml",
         "DotnetIntelligence.slnx",
         "src/DotnetIntelligence.Contracts",
         "src/DotnetIntelligence.Analysis",

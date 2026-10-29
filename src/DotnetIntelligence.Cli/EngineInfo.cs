@@ -7,8 +7,8 @@ public static class EngineInfo
 {
     public const string Name = "dotnet-intelligence";
 
-    /// <summary>Contract version written into manifests. 0.x until contract v1 is published (Step 2).</summary>
-    public const string SchemaVersion = "0.1";
+    /// <summary>Contract version written into manifests (schema/v1, docs/CONTRACT.md).</summary>
+    public const string SchemaVersion = "1.0";
 
     public static string Version { get; } =
         (typeof(EngineInfo).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0")

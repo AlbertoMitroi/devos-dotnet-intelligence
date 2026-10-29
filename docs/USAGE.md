@@ -1,6 +1,6 @@
 # Usage
 
-Engine version 0.1.0 (Step 1). **What it does today:** exports the committed state of a repository, discovers its solutions and projects, and writes a generation with `graph/projects.ndjson`, `graph/diagnostics.ndjson`, `manifest.json` (written last, with SHA-256 per file) and `run.json`. Semantic extraction is not part of this version: every generation has status `partial`, every project is `not-analyzed`, and the diagnostic `extraction-not-available` says so. The manifest uses `schemaVersion` `0.1` until contract v1 is published (Step 2).
+**What it does today:** exports the committed state, resolves each solution's SDK, restores, loads every project with Roslyn (syntax fallback otherwise), and writes the graph, observations, links, snippets, generated sources, context packs, `manifest.json` (written last, after validation against [contract v1](CONTRACT.md)) and `run.json`. `verify <generation>` repeats the checks. Restore needs the network; mount `/cache` to keep packages between runs. `--config` takes a YAML file with messaging conventions (see `tests/eshop/conventions.yml`).
 
 ## GitHub Action
 
@@ -55,7 +55,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
 
 - `--user "$(id -u):$(id -g)"` makes the output belong to the calling user on Linux hosts; the image's default user is the non-root `app` (uid 1654).
 - `version --json` prints the engine version, the Roslyn build and API version, the SDK set with each compiler, the runtimes, and whether the Roslyn rule holds.
-- `analyze` options: `--src`, `--out`, `--config`, `--solution`, `--include-working-tree`, `--offline`. Version 0.1.0 uses no network at all, so `--network none` works with or without `--offline`.
+- `analyze` options: `--src`, `--out`, `--config`, `--solution`, `--include-working-tree`, `--offline` (recorded; restore still runs and reports failures without network).
 - Private NuGet feeds (used from Step 3 on): pass `NuGetPackageSourceCredentials_<source key>=Username=...;Password=...` as an environment variable; it never appears in outputs or logs.
 - `DI_IMAGE_DIGEST`: the image cannot know its own digest; pass it to have it recorded in the manifest, otherwise the manifest says `unknown`.
 
@@ -64,7 +64,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
 | Code | Meaning |
 |---|---|
 | 0 | complete |
-| 10 | partial (every 0.1.0 generation) |
+| 10 | partial |
 | 20 | preflight blocked |
 | 30 | nothing could be loaded (for example, `/src` is not a Git repository); no manifest |
 | 40 | cancelled; no manifest |
@@ -74,7 +74,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
 
 ## Events
 
-`analyze` writes one JSON object per line on stdout: `run.start`, `stage.start` and `stage.end` (stages `export`, `discovery`, `artifacts`), `diagnostic`, `run.end` (with `status` and `exitCode`). Logs go to stderr.
+`analyze` writes one JSON object per line on stdout: `run.start`, `stage.start` and `stage.end` (stages `export`, `discovery`, `preflight`, `restore`, `load`, `extract`, `syntax-fallback`, `adapters`, `links`, `artifacts`), `diagnostic`, `run.end` (with `status` and `exitCode`). Logs go to stderr.
 
 ## Working copy
 

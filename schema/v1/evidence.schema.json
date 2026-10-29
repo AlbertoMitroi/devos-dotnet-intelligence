@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/dotnet-intelligence/schema/v1/evidence.schema.json",
+  "title": "Evidence",
+  "type": "object",
+  "required": [
+    "id",
+    "path",
+    "blobId",
+    "span",
+    "extractor",
+    "method",
+    "context",
+    "store"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^ev:[0-9a-f]{32}$"
+    },
+    "path": {
+      "type": "string"
+    },
+    "blobId": {
+      "type": "string"
+    },
+    "span": {
+      "type": "object",
+      "required": [
+        "startLine",
+        "startColumn",
+        "endLine",
+        "endColumn"
+      ],
+      "properties": {
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "startColumn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endColumn": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "extractor": {
+      "type": "string",
+      "pattern": "^.+@.+$"
+    },
+    "method": {
+      "enum": [
+        "semantic",
+        "syntax",
+        "metadata",
+        "config",
+        "configured-convention"
+      ]
+    },
+    "context": {
+      "type": "string",
+      "pattern": "^ctx:[0-9a-f]{32}$"
+    },
+    "store": {
+      "enum": [
+        "repository",
+        "generation"
+      ]
+    },
+    "generator": {
+      "type": "string"
+    },
+    "snippet": {
+      "type": "string",
+      "pattern": "^snip:[0-9a-f]{32}$"
+    }
+  },
+  "additionalProperties": true
+}

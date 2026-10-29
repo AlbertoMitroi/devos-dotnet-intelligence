@@ -59,6 +59,7 @@ for repo in "$work"/repos/*/; do
   # Byte comparison inside the image, so the check is the same on every host.
   docker run --rm --entrypoint diff -v "$work/out:/runs:ro" "$tag" -r -x run.json "/runs/$name-1" "/runs/$name-2"
   echo "$name: two runs identical"
+  docker run --rm -v "$work/out:/runs:ro" "$tag" verify "/runs/$name-1"
 done
 
 step "GitHub Action mode"

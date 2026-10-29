@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/dotnet-intelligence/schema/v1/link.schema.json",
+  "title": "Link",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "via",
+    "from",
+    "to",
+    "resolution",
+    "evidence"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^lnk:[0-9a-f]{32}$"
+    },
+    "kind": {
+      "type": "string",
+      "description": "v1 kinds are listed in docs/CONTRACT.md; unknown kinds from newer minors are kept and reported, not rejected (3.5)."
+    },
+    "via": {
+      "enum": [
+        "http",
+        "grpc",
+        "messaging",
+        "di"
+      ]
+    },
+    "from": {
+      "type": "object",
+      "required": [
+        "observation",
+        "kind",
+        "project"
+      ]
+    },
+    "to": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "observation",
+        "kind",
+        "project"
+      ]
+    },
+    "resolution": {
+      "enum": [
+        "exact",
+        "ambiguous",
+        "candidate",
+        "unresolved"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ev:[0-9a-f]{32}$"
+      },
+      "minItems": 1
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

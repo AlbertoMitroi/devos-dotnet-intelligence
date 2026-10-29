@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/dotnet-intelligence/schema/v1/diagnostic.schema.json",
+  "title": "Diagnostic",
+  "type": "object",
+  "required": [
+    "id",
+    "severity",
+    "code",
+    "scope",
+    "state",
+    "message"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^diag:[0-9a-f]{32}$"
+    },
+    "severity": {
+      "enum": [
+        "info",
+        "warning",
+        "error"
+      ]
+    },
+    "code": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "failed",
+        "partial",
+        "unsupported",
+        "unknown"
+      ]
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

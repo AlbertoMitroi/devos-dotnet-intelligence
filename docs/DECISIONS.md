@@ -147,3 +147,20 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 - **Reason:** every tag is consumable as soon as its images exist.
 - **Revisit:** if releases become automated from main.
 - **Status:** accepted.
+
+## D18: Message fan-out is not ambiguity
+
+- **Context:** 5.1 says several matches are kept as ambiguous. For publish/subscribe, several subscribers of one contract are all real receivers.
+- **Choice:** for messaging links each subscriber keeps the weakest resolution of the publisher and that subscriber; `ambiguous` is used for request/response targets (HTTP, gRPC, DI). Two observations of the same subscription (handler interface and subscription registration) are merged into one target.
+- **Reason:** otherwise every event with two subscribers would look uncertain although the code is exact (eShop: OrderStatusChangedToPaid reaches Catalog.API, WebApp and Webhooks.API).
+- **Revisit:** if a consumer needs "one of" semantics for competing consumers; that would be a new field, not a change of meaning.
+- **Status:** accepted (deviation from the wording of 5.1).
+
+## D19: Contract validation without generated types yet
+
+- **Context:** 3.6 asks for C# types generated from the schema with a drift check (D5).
+- **Choice:** in this slice the schemas exist and are enforced by an in-repo validator for the subset they use (embedded in the engine, so `verify` works anywhere); records are still built as JSON objects. The generator of D5 is not written yet.
+- **Reason:** the user asked for the complete graph first; validation of every written record against the schema gives the guarantee consumers need now.
+- **Revisit:** before Gate 2 is declared passed: generate the types and switch the writers to them.
+- **Status:** accepted as an open gap, reported in the Step 3 report.
+

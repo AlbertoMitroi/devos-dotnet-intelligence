@@ -219,6 +219,18 @@ public static class AnalyzeRunner
                 generation.WriteBytes(path, System.Text.Encoding.UTF8.GetBytes(content));
             }
 
+            // 3.6: validate the generation before the manifest exists; a failed check means no manifest.
+            var integrity = GenerationVerifier.VerifyRecords(generation.Root,
+                workingCopy.Files.ToDictionary(f => f.Path, f => f.BlobId, StringComparer.Ordinal), workingCopy.ObjectFormat);
+            if (integrity.Count > 0)
+            {
+                foreach (var problem in integrity.Take(50))
+                {
+                    events.Log("integrity: " + problem);
+                }
+                events.Emit("run.end", new JsonObject { ["status"] = "failed", ["exitCode"] = ExitCodes.IntegrityFailed, ["integrityErrors"] = integrity.Count });
+                return new AnalyzeOutcome(ExitCodes.IntegrityFailed, "failed", null, discovery.Projects.Count, coverage, diagnostics);
+            }
             generation.WriteManifest(manifest);
             EndStage(events, stages, "artifacts", stage);
 

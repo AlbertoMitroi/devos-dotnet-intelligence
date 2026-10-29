@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/dotnet-intelligence/schema/v1/analysis-context.schema.json",
+  "title": "Analysis context",
+  "type": "object",
+  "required": [
+    "id",
+    "recordType",
+    "project",
+    "projectId",
+    "targetFramework",
+    "configuration",
+    "preprocessorSymbols",
+    "loadMode",
+    "reason"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^ctx:[0-9a-f]{32}$"
+    },
+    "recordType": {
+      "const": "analysisContext"
+    },
+    "project": {
+      "type": "string"
+    },
+    "projectId": {
+      "type": "string",
+      "pattern": "^prj:[0-9a-f]{32}$"
+    },
+    "targetFramework": {
+      "type": "string"
+    },
+    "configuration": {
+      "type": "string"
+    },
+    "preprocessorSymbols": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "loadMode": {
+      "enum": [
+        "semantic",
+        "syntax",
+        "failed"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "compilationErrors": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": true
+}
