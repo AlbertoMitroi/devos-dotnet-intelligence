@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DotnetIntelligence.Contracts/DotnetIntelligence.Contracts.csproj" />
+    <Project Path="src/DotnetIntelligence.Analysis/DotnetIntelligence.Analysis.csproj" />
+    <Project Path="src/DotnetIntelligence.Adapters/DotnetIntelligence.Adapters.csproj" />
+    <Project Path="src/DotnetIntelligence.Artifacts/DotnetIntelligence.Artifacts.csproj" />
+    <Project Path="src/DotnetIntelligence.Cli/DotnetIntelligence.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/unit/DotnetIntelligence.UnitTests/DotnetIntelligence.UnitTests.csproj" />
+    <Project Path="tests/integration/DotnetIntelligence.IntegrationTests/DotnetIntelligence.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

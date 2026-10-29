@@ -1,0 +1,6 @@
+.git
+**/bin
+**/obj
+.verify
+.ci-action
+intelligence-out

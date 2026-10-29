@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>DotnetIntelligence.Cli</RootNamespace>
+    <AssemblyName>dotnet-intelligence</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../DotnetIntelligence.Analysis/DotnetIntelligence.Analysis.csproj" />
+    <ProjectReference Include="../DotnetIntelligence.Adapters/DotnetIntelligence.Adapters.csproj" />
+    <ProjectReference Include="../DotnetIntelligence.Artifacts/DotnetIntelligence.Artifacts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="DotnetIntelligence.UnitTests" />
+    <InternalsVisibleTo Include="DotnetIntelligence.IntegrationTests" />
+  </ItemGroup>
+</Project>

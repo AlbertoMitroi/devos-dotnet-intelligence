@@ -1,0 +1,6 @@
+bin/
+obj/
+.verify/
+.ci-action/
+intelligence-out/
+*.user
