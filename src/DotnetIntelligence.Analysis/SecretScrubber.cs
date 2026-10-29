@@ -71,12 +71,12 @@ public sealed partial class SecretScrubber
     [GeneratedRegex(@"(?<key>\b(?:password|pwd|secret|accountkey|sharedaccesskey|apikey|api_key|token|access_token|client_secret)\b)\s*=\s*[^;""'\s]+", RegexOptions.IgnoreCase)]
     private static partial Regex ConnectionStringSecret();
 
-    [GeneratedRegex(@"(?<prefix>(?:password|passwd|pwd|secret|apikey|api_key|token|clientsecret|client_secret|connectionstring)\w*""?\s*[:=]\s*(?<quote>[""']))[^""']{4,}(?=[""'])", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?<prefix>(?:password|passwd|passphrase|pwd|secret|apikey|api_key|token|clientsecret|client_secret|connectionstring)\w*""?\s*[:=]\s*(?<quote>[""']))[^""']{4,}(?=[""'])", RegexOptions.IgnoreCase)]
     private static partial Regex AssignedSecret();
 
     [GeneratedRegex(@"\b(?:[A-Za-z0-9+/]{40,}={0,2}|[A-Fa-f0-9]{40,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[abpr]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16})\b")]
     private static partial Regex LongToken();
 
-    [GeneratedRegex(@"(password|passwd|pwd|secret|apikey|api_key|accesskey|access_key|accountkey|privatekey|private_key|clientsecret|client_secret|token|credential|connectionstring|sas)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(password|passwd|passphrase|pass_phrase|pwd|secret|apikey|api_key|accesskey|access_key|accountkey|privatekey|private_key|clientsecret|client_secret|token|credential|connectionstring|sas)", RegexOptions.IgnoreCase)]
     private static partial Regex SecretKeyName();
 }

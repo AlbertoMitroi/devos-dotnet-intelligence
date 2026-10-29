@@ -25,7 +25,8 @@ public sealed class ConfigurationAdapter(AdapterContext context)
             foreach (var (key, value, offset, length) in Keys(bytes))
             {
                 var (line, column) = Position(bytes, offset);
-                var lineText = LineAt(bytes, offset);
+                // Rule 1.4.6: the snippet of a configuration key never carries its value.
+                var lineText = KeyOnly(LineAt(bytes, offset), column, length);
                 var evidence = context.Graph.AddEvidence(
                     new SourceLocation(file.Path, file.BlobId, new SourceSpan(line, column, line, column + length), "repository", null),
                     "config", context.ContextId, lineText);
@@ -114,6 +115,14 @@ public sealed class ConfigurationAdapter(AdapterContext context)
         var text = Encoding.UTF8.GetString(bytes, 0, offset);
         var lastBreak = text.LastIndexOf('\n');
         return (text.Count(c => c == '\n') + 1, text.Length - lastBreak);
+    }
+
+    /// <summary>The line up to the key and its colon, with the value replaced: "  \"Key\": [value omitted]".</summary>
+    internal static string KeyOnly(string line, int column, int length)
+    {
+        var end = Math.Min(line.Length, Math.Max(0, column - 1 + length));
+        var colon = line.IndexOf(':', end);
+        return (colon < 0 ? line[..end] : line[..(colon + 1)]) + " [value omitted]";
     }
 
     internal static string LineAt(byte[] bytes, int offset)

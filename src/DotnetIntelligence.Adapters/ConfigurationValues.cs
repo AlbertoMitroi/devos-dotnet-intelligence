@@ -260,9 +260,10 @@ public sealed class ConfigurationValues
         var destination = new JsonObject { ["kind"] = kind, ["configurationKey"] = reference.Key };
         foreach (var value in values)
         {
+            // A secret-looking destination keeps only its key in the snippet; other destination values are stored (D21).
             evidence.Add(context.Graph.AddEvidence(
                 new SourceLocation(value.File, value.BlobId, new SourceSpan(value.Line, value.Column, value.Line, value.Column + value.Length), "repository", null),
-                "config", context.ContextId, value.LineText));
+                "config", context.ContextId, secret ? ConfigurationAdapter.KeyOnly(value.LineText, value.Column, value.Length) : value.LineText));
         }
         if (secret)
         {

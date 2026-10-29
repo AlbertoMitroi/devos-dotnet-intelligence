@@ -14,7 +14,12 @@ observations:
     - {kind: config.key, key: "Hosts:0", file: src/Svc/appsettings.json, secret: "false", at: "src/Svc/appsettings.json:14"}
     - {kind: config.key, key: "Hosts:1", file: src/Svc/appsettings.json, secret: "false", at: "src/Svc/appsettings.json:14"}
     - {kind: config.key, key: "Payments:ApiKey", file: src/Svc/appsettings.Development.json, secret: "true", at: "src/Svc/appsettings.Development.json:3"}
+    - {kind: config.key, key: "StringEncryption:DefaultPassPhrase", file: src/Svc/appsettings.json, secret: "true", at: "src/Svc/appsettings.json:16"}
+# Configuration values are never stored (rule 1.4.6), secret or not, unless an adapter uses one as a destination (D21).
 secretsAbsent:
+  - Fixture0Phrase77
+  - payments.example.invalid
+  - a.example.invalid
   - Fixture-Secret-123
   - sk_fixture_value_456
   - dev_fixture_value_789
