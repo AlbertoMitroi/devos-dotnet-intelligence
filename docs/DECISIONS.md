@@ -24,19 +24,19 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 
 - **Context:** rule 2.2: engine Roslyn ≥ compiler of every SDK in the image.
 - **Options:** latest stable `Microsoft.CodeAnalysis.*`; the exact version shipped in SDK 10.0.403.
-- **Choice:** `5.9.0`. The compiler in SDK 10.0.403 is `5.9.0-1.26523.112` on amd64 and arm64 (PLAN Appendix A.5), a prerelease of 5.9.0, so `5.9.0` is newer. The build-time test (R1.4) enforces the rule from Step 1 on, for every SDK in the image.
-- **Reason:** latest stable; newer than or equal to the in-box compiler keeps analyzers and generators from the SDK loadable.
-- **Revisit:** whenever D2 changes; SDK 9.0.320 must be checked when slice 9a adds it (expected to ship an older compiler, not yet probed).
-- **Status:** accepted for SDK 10.
+- **Choice:** `5.9.0`, and the rule compares **assembly versions** of `Microsoft.CodeAnalysis.dll` (engine vs `sdk/<version>/Roslyn/bincore` of each SDK). Both build numbers are recorded in `version --json` and the manifest.
+- **Reason:** recorded in Step 1 (report, section "Roslyn rule"): the nuget.org package `5.9.0` is build `5.9.0-1.26357.3`, while SDK 10.0.403 ships the later servicing build `5.9.0-1.26523.112` of the same release line. Comparing build strings would declare the latest stable package older than the SDK and leave no compliant package on nuget.org. Analyzers and source generators bind to the assembly version (`5.9.0.0` for both), which is what decides whether they load. The Step 0 version of this entry compared `5.9.0` with `5.9.0-1.26523.112` as SemVer strings; that was wrong and is corrected here.
+- **Revisit:** whenever D2 changes; when a later `Microsoft.CodeAnalysis` release appears, prefer the one at or above the SDK build.
+- **Status:** accepted for SDK 10; checked by `ImageToolchainTests` in the test stage.
 
 ## D4: SDK selection per solution
 
 - **Context:** a repository may contain solutions pinned to SDK 9 and SDK 10. MSBuild evaluation must use the SDK that the solution's `global.json` selects (4.2.3).
 - **Options:** (a) MSBuildWorkspace 5.x out-of-process BuildHost, which locates MSBuild per project directory; (b) one engine subprocess per resolved SDK, each with that SDK's MSBuild registered, results merged by the parent; (c) a single MSBuild for all projects.
-- **Choice:** (a) if spike S1 confirms it under the image's runtime set; otherwise (b). (c) is rejected: it silently changes evaluation results.
-- **Reason:** (a) needs no custom process orchestration; (b) is the proven fallback.
-- **Revisit:** result of S1 in Step 1b (single SDK) and slice 9a (SDK 9 added); recorded here.
-- **Status:** proposed; with one SDK in the first image only the BuildHost start-up part of S1 applies.
+- **Choice:** (a) for the single-SDK image. Spike S1, first part, passed in Step 1: `WorkspaceSpikeTests` opens the `.slnx` of fixture f00 with `MSBuildWorkspace.Create()` (no `Microsoft.Build.Locator`) in the image's test stage, with only runtime 10.0.14 present; the project loads with its document, no failure-level `WorkspaceFailed` diagnostic and no compilation error. The second part (two SDKs, selection per `global.json`) runs in slice 9a; (b) stays the fallback. (c) is rejected: it silently changes evaluation results.
+- **Reason:** (a) needs no custom process orchestration.
+- **Revisit:** slice 9a.
+- **Status:** accepted for SDK 10; open for SDK 9.
 
 ## D5: Generating C# types from the schema
 
@@ -129,3 +129,21 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 - **Constraint:** the code treats the SDK set as a list from the start (resolution, Roslyn rule, `version --json`), so adding SDK 9 is an image change plus fixtures, not a redesign.
 - **Revisit:** at the Gate 3 review, or as soon as a target repository needs SDK 9.
 - **Status:** accepted (deviation from 2.2, recorded in every gate report until closed).
+
+## D16: Action image runs as root
+
+- **Context:** 2.2 asks for a non-root image. GitHub documents that Docker container actions must run as the default Docker user (root) to write `GITHUB_WORKSPACE`; `action.yml` cannot choose a user.
+- **Options:** a root default user for everyone; a composite action calling `docker run --user` (not a Docker container action, against 2.5); a second tag of the same image with `USER root`.
+- **Choice:** the `action` stage is the `runtime` stage plus `USER root`, published as `<version>-action`; `action.yml` uses it. The plain `<version>` tag keeps the non-root `app` user. At the end of a run in Action mode the engine changes the owner of the output and cache directories to the owner of the workspace (`chown -R --reference`).
+- **Reason:** keeps the non-root default for `docker run`, satisfies GitHub's requirement, and leaves files that later steps (upload, cache, cleanup) can manage. CI checks the owner (`test -O`).
+- **Revisit:** if GitHub lets container actions set a user.
+- **Status:** accepted.
+
+## D17: Release flow
+
+- **Context:** 2.6 says the release updates `action.yml` to the released version. A tag that points at a commit whose `action.yml` names another version would ship a broken `@v<version>`.
+- **Options:** the workflow commits the new `action.yml` after the tag (then the tag and the action disagree); the release commit carries the version and the workflow checks it.
+- **Choice:** the release commit sets `<Version>` in `Directory.Build.props` and the image tag in `action.yml`; `release.yml` on tag `v<version>` refuses to publish unless tag, `Directory.Build.props` and `action.yml` agree, then pushes `<version>` and `<version>-action` for both architectures with SBOM and provenance, creates the GitHub release (with the schema once it exists) and moves the major tag. `ActionManifestTests` keeps `action.yml` and `Directory.Build.props` in agreement on every build.
+- **Reason:** every tag is consumable as soon as its images exist.
+- **Revisit:** if releases become automated from main.
+- **Status:** accepted.
