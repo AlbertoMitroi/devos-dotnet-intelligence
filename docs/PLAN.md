@@ -92,34 +92,34 @@ Columns: requirement id, prompt section, planned code, planned test or recorded 
 
 | Id | Requirement | Section | Planned code | Planned test / check | Result |
 |---|---|---|---|---|---|
-| R1.1 | Repository layout as specified | 2.1 | whole repo | `tests/unit/LayoutTests` checks required paths exist | pending |
-| R1.2 | .NET 10 SDK base pinned by digest; `--list-sdks` and `--list-runtimes` show the image's SDK set. SDK 9 side by side is deferred (D15, slice 9a) | 2.2 | `Dockerfile` runtime stage | `tests/integration/ImageSelfTest` runs both commands in the runtime image and compares with the declared SDK set | pending; SDK 9 part deferred |
-| R1.3 | SDK set printed by `version --json` | 2.2, 4.1 | `Cli/VersionCommand` | `ImageSelfTest` compares `version --json` with `--list-sdks` | pending |
-| R1.4 | Engine Roslyn ≥ compiler of every SDK in the image; build fails otherwise | 2.2 | `Analysis/RoslynCompatibility` | `RoslynRuleTest` in the test stage reads `csc.dll -version` per SDK | pending |
-| R1.5 | linux/amd64 and linux/arm64 with Buildx | 2.2 | `ci.yml`, `release.yml` | CI matrix on native runners (D10) | pending |
-| R1.6 | Mounts `/src` ro, `/out`, `/cache` with `NUGET_PACKAGES`, `/config` ro | 2.2 | `Dockerfile` env, `Cli` defaults | `MountContractTest`: write attempt to `/src` fails, `NUGET_PACKAGES=/cache/nuget` | pending |
-| R1.7 | Non-root user; entry point is the CLI | 2.2 | `Dockerfile` | `ImageSelfTest` checks `id -u` ≠ 0 and entrypoint | pending |
-| R1.8 | Network only for restore and clone; `--offline` works with `--network none` and a full cache | 2.2 | `Analysis/RestoreRunner` | Step 1: skeleton analyze under `--network none`; full check in Step 3 (R3.10) | pending |
-| R1.9 | Private feed credentials via `NuGetPackageSourceCredentials_*`, never in outputs or logs | 2.2, 1.4.6 | `Analysis/RestoreRunner`, log filter | `CredentialLeakTest`: sentinel credential, grep of `/out`, stdout, stderr | pending |
-| R1.10 | `safe.directory` for the engine's own Git calls only | 2.3 | `Analysis/Git` (`-c safe.directory=/src` per call) | `GitSafeDirectoryTest`: repo owned by another uid; global git config unchanged | pending |
-| R1.11 | Export committed HEAD to `/work`; `--include-working-tree` copies the tree and marks dirty | 2.3 | `Analysis/WorkingCopyExporter` (D8) | `WorkingCopyTests`: CRLF blob, `eol=crlf` attribute, dirty flag | pending |
-| R1.12 | Repository-relative forward-slash paths, blob ids, line and column spans | 2.3 | `Analysis/EvidenceFactory` (D9) | `PathAndSpanTests` | pending |
-| R1.13 | Shallow clones work; uninitialised submodules become diagnostics | 2.3 | `WorkingCopyExporter` | `WorkingCopyTests`: `--depth 1` clone, submodule fixture | pending |
-| R1.14 | `verify.sh` and `verify.ps1` run the same Docker-only steps | 2.4 | `scripts/` | Run both on the macOS host (pwsh in a container for `.ps1` if no host pwsh) and in CI | pending |
-| R1.15 | Dev container optional; nothing requires it | 2.4 | `.devcontainer/` | CI never uses it; check recorded in report | pending |
-| R1.16 | Docker container action referencing the published image by version | 2.5 | `action.yml` (D11) | `ActionManifestTest` parses `action.yml`: `runs.using: docker`, image `docker://ghcr.io/...:<semver>` | pending |
-| R1.17 | Inputs `path`, `solution`, `config`, `output`, `include-working-tree`, `fail-on` with defaults | 2.5 | `action.yml`, `Cli/GitHubActionMode` | `ActionManifestTest` + `GitHubActionModeTests` | pending |
-| R1.18 | Outputs `generation-path`, `manifest-path`, `status`, `coverage` | 2.5 | `Cli/GitHubActionMode` | `GitHubActionModeTests` reads the `GITHUB_OUTPUT` file | pending |
-| R1.19 | Output and NuGet cache inside the workspace | 2.5 | `GitHubActionMode` | CI job uses `actions/upload-artifact` and `actions/cache` on those paths | pending |
-| R1.20 | Examples: upload artifact, OCI push, plain `docker run` | 2.5 | `examples/workflows/` | `examples-lint` job (actionlint in a container) and one example executed in CI | pending |
-| R1.21 | CI builds both architectures, runs tests, analyses fixtures, compares outputs byte for byte | 2.6 | `ci.yml` | CI run link recorded in the report | pending |
-| R1.22 | Release: GHCR push with SBOM and provenance, `action.yml` updated, schema published | 2.6 | `release.yml` | First release tag run; `docker buildx imagetools inspect` shows attestations | pending |
-| R1.23 | Engine semver, contract `schemaVersion`, Action major tag `v1` | 2.6 | `Directory.Build.props`, `release.yml` | `VersioningTests` | pending |
-| R1.24 | Every dependency pinned with license; base images by digest | 1.5.4 | `docs/DEPENDENCIES.md`, lock files | `DependencyPinTests`: lock files present, every `FROM` has `@sha256:`, every package listed with license | pending |
-| G1.1 | Image builds for both architectures; self-test shows SDK 9 and 10, matching runtimes, compatible Roslyn | Gate 1 | | R1.2 to R1.5 in CI | pending; at Gate 1 only SDK 10 is checked, SDK 9 reported as deferred (D15) |
-| G1.2 | `verify.sh` and `verify.ps1` pass on a Docker-only host | Gate 1 | | R1.14 | pending |
-| G1.3 | Skeleton analyze through the Action on a fixture produces a manifest and the declared outputs in CI | Gate 1 | | `ci.yml` job `action-smoke` | pending |
-| G1.4 | `docs/reports/step-1-infrastructure.md` | Gate 1 | | file exists, every claim has its command | pending |
+| R1.1 | Repository layout as specified | 2.1 | whole repo | `tests/unit/LayoutTests` checks required paths exist | pass: LayoutTests |
+| R1.2 | .NET 10 SDK base pinned by digest; `--list-sdks` and `--list-runtimes` show the image's SDK set. SDK 9 side by side is deferred (D15, slice 9a) | 2.2 | `Dockerfile` runtime stage | `tests/integration/ImageSelfTest` runs both commands in the runtime image and compares with the declared SDK set | pass for SDK 10 (ImageToolchainTests, verify self-test); SDK 9 deferred (D15) |
+| R1.3 | SDK set printed by `version --json` | 2.2, 4.1 | `Cli/VersionCommand` | `ImageSelfTest` compares `version --json` with `--list-sdks` | pass: verify self-test |
+| R1.4 | Engine Roslyn ≥ compiler of every SDK in the image; build fails otherwise | 2.2 | `Analysis/RoslynCompatibility` | `RoslynRuleTest` in the test stage reads `csc.dll -version` per SDK | pass: assembly 5.9.0 ≥ 5.9.0 (D3 corrected) |
+| R1.5 | linux/amd64 and linux/arm64 with Buildx | 2.2 | `ci.yml`, `release.yml` | CI matrix on native runners (D10) | pass: CI run 40880354904, native runners |
+| R1.6 | Mounts `/src` ro, `/out`, `/cache` with `NUGET_PACKAGES`, `/config` ro | 2.2 | `Dockerfile` env, `Cli` defaults | `MountContractTest`: write attempt to `/src` fails, `NUGET_PACKAGES=/cache/nuget` | partial: analyze works with `/src:ro` and `NUGET_PACKAGES=/cache/nuget`; dedicated write-attempt test not written |
+| R1.7 | Non-root user; entry point is the CLI | 2.2 | `Dockerfile` | `ImageSelfTest` checks `id -u` ≠ 0 and entrypoint | pass: verify checks `id -u` ≠ 0 |
+| R1.8 | Network only for restore and clone; `--offline` works with `--network none` and a full cache | 2.2 | `Analysis/RestoreRunner` | Step 1: skeleton analyze under `--network none`; full check in Step 3 (R3.10) | partial: every run uses `--network none`; offline restore from cache is Step 3 |
+| R1.9 | Private feed credentials via `NuGetPackageSourceCredentials_*`, never in outputs or logs | 2.2, 1.4.6 | `Analysis/RestoreRunner`, log filter | `CredentialLeakTest`: sentinel credential, grep of `/out`, stdout, stderr | pass: Credentials_never_reach_outputs_or_logs (no restore yet) |
+| R1.10 | `safe.directory` for the engine's own Git calls only | 2.3 | `Analysis/Git` (`-c safe.directory=/src` per call) | `GitSafeDirectoryTest`: repo owned by another uid; global git config unchanged | pass: Repositories_owned_by_another_user_are_read_without_changing_git_config |
+| R1.11 | Export committed HEAD to `/work`; `--include-working-tree` copies the tree and marks dirty | 2.3 | `Analysis/WorkingCopyExporter` (D8) | `WorkingCopyTests`: CRLF blob, `eol=crlf` attribute, dirty flag | pass: WorkingCopyTests |
+| R1.12 | Repository-relative forward-slash paths, blob ids, line and column spans | 2.3 | `Analysis/EvidenceFactory` (D9) | `PathAndSpanTests` | partial: paths and blob ids pass; spans arrive with Step 3 |
+| R1.13 | Shallow clones work; uninitialised submodules become diagnostics | 2.3 | `WorkingCopyExporter` | `WorkingCopyTests`: `--depth 1` clone, submodule fixture | pass: WorkingCopyTests |
+| R1.14 | `verify.sh` and `verify.ps1` run the same Docker-only steps | 2.4 | `scripts/` | Run both on the macOS host (pwsh in a container for `.ps1` if no host pwsh) and in CI | pass: CI on amd64 and arm64; macOS host (`verify.sh`, and `verify.ps1` through pwsh in a container) |
+| R1.15 | Dev container optional; nothing requires it | 2.4 | `.devcontainer/` | CI never uses it; check recorded in report | pass: CI does not use it |
+| R1.16 | Docker container action referencing the published image by version | 2.5 | `action.yml` (D11) | `ActionManifestTest` parses `action.yml`: `runs.using: docker`, image `docker://ghcr.io/...:<semver>` | pass: ActionManifestTests; published image not yet released |
+| R1.17 | Inputs `path`, `solution`, `config`, `output`, `include-working-tree`, `fail-on` with defaults | 2.5 | `action.yml`, `Cli/GitHubActionMode` | `ActionManifestTest` + `GitHubActionModeTests` | pass: ActionManifestTests, GitHubActionModeTests |
+| R1.18 | Outputs `generation-path`, `manifest-path`, `status`, `coverage` | 2.5 | `Cli/GitHubActionMode` | `GitHubActionModeTests` reads the `GITHUB_OUTPUT` file | pass: CI action smoke test |
+| R1.19 | Output and NuGet cache inside the workspace | 2.5 | `GitHubActionMode` | CI job uses `actions/upload-artifact` and `actions/cache` on those paths | pass: CI action smoke test |
+| R1.20 | Examples: upload artifact, OCI push, plain `docker run` | 2.5 | `examples/workflows/` | `examples-lint` job (actionlint in a container) and one example executed in CI | partial: linted by actionlint; not executed (needs a published image) |
+| R1.21 | CI builds both architectures, runs tests, analyses fixtures, compares outputs byte for byte | 2.6 | `ci.yml` | CI run link recorded in the report | pass: CI run 40880354904 |
+| R1.22 | Release: GHCR push with SBOM and provenance, `action.yml` updated, schema published | 2.6 | `release.yml` | First release tag run; `docker buildx imagetools inspect` shows attestations | not validated: no release yet (license Q5) |
+| R1.23 | Engine semver, contract `schemaVersion`, Action major tag `v1` | 2.6 | `Directory.Build.props`, `release.yml` | `VersioningTests` | partial: versions agree (ActionManifestTests); `v1` tag not created yet |
+| R1.24 | Every dependency pinned with license; base images by digest | 1.5.4 | `docs/DEPENDENCIES.md`, lock files | `DependencyPinTests`: lock files present, every `FROM` has `@sha256:`, every package listed with license | pass: DependencyPinTests |
+| G1.1 | Image builds for both architectures; self-test shows SDK 9 and 10, matching runtimes, compatible Roslyn | Gate 1 | | R1.2 to R1.5 in CI | pass for SDK 10 (D15) |
+| G1.2 | `verify.sh` and `verify.ps1` pass on a Docker-only host | Gate 1 | | R1.14 | pass |
+| G1.3 | Skeleton analyze through the Action on a fixture produces a manifest and the declared outputs in CI | Gate 1 | | `ci.yml` job `action-smoke` | pass, with the action built FROM the verified image (no published image yet) |
+| G1.4 | `docs/reports/step-1-infrastructure.md` | Gate 1 | | file exists, every claim has its command | pass: docs/reports/step-1-infrastructure.md |
 
 ### Step 2: contract v1
 
@@ -359,7 +359,7 @@ global.json history (newest first):
 parent of 318e03744f: 94e2643dc73b0be47cb956bd79af9863b87df845 (2025-09-18, "Inventory drift (#896)")
 global.json @ 94e2643: sdk.version 9.0.200, rollForward latestFeature, allowPrerelease true
 solutions @ main: eShop.slnx, src/ClientApp/ClientApp.sln, tests/ClientApp.UnitTests/ClientApp.UnitTests.sln
-projects @ main: 21 under src/, 10 under tests/ (ClientApp and HybridApp are MAUI)
+projects @ main: 28 C# projects, 19 under src/ and 9 under tests/ (ClientApp and HybridApp are MAUI); corrected in Step 1, the Step 0 text said 21 and 10
 ```
 
 ### A.7 GitHub-hosted arm64 runners
