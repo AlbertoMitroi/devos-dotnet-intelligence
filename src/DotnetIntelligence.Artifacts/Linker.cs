@@ -126,7 +126,11 @@ public static class Linker
                 continue;
             }
             var consumerProject = (string)consume["project"]!;
-            var roots = candidates.Where(r => (string)r["project"]! == consumerProject || References(references, (string)r["project"]!, consumerProject)).ToList();
+            var key = (string?)consume["key"];
+            // The composition root decides where a registration applies, not the project of the registering code:
+            // a library's AddX extension called from an application's entry point registers into that application.
+            var roots = candidates.Where(r => (string?)r["key"] == key)
+                .Where(r => RootProject(r) is var root && (root == consumerProject || References(references, root, consumerProject))).ToList();
             AddLinks(links, "consumes_contract", "di", consume, roots, Evidence(consume), ["exact"],
                 roots.Count == 0 ? "The service is registered only in composition roots that do not include the consumer's project." : null, keepUnresolved: true);
         }
@@ -143,7 +147,8 @@ public static class Linker
             .OrderBy(g => g.Key, StringComparer.Ordinal)
             .Select(g =>
             {
-                var ordered = g.OrderBy(s => (string)s["id"]!, StringComparer.Ordinal).ToList();
+                // The handler type is the subscription's natural representative; registrations add their evidence.
+                var ordered = g.OrderBy(s => (string?)s["ext.dotnet.via"] == "handler-interface" ? 0 : 1).ThenBy(s => (string)s["id"]!, StringComparer.Ordinal).ToList();
                 var merged = (JsonObject)ordered[0].DeepClone();
                 merged["evidence"] = new JsonArray(ordered.SelectMany(Evidence).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(e => (JsonNode)e).ToArray());
                 merged["resolution"] = ordered.Select(s => (string)s["resolution"]!).OrderByDescending(r => Array.IndexOf(Strength, r)).First();
@@ -151,6 +156,20 @@ public static class Linker
             }).ToList();
 
     /// <param name="fanOut">Publish/subscribe: several subscribers are all real receivers, not alternatives, so they are not ambiguous (D18).</param>
+    /// <summary>The project of a registration's composition root ("dotnet:{project}:{documentation id}"), else the registering project.</summary>
+    private static string RootProject(JsonObject registration)
+    {
+        if ((string?)registration["compositionRoot"] is { } root && root.StartsWith("dotnet:", StringComparison.Ordinal) && !root.StartsWith("dotnet:pkg:", StringComparison.Ordinal))
+        {
+            var end = root.IndexOf(".csproj:", StringComparison.Ordinal);
+            if (end > 0)
+            {
+                return root["dotnet:".Length..(end + ".csproj".Length)];
+            }
+        }
+        return (string)registration["project"]!;
+    }
+
     private static void AddLinks(Dictionary<string, JsonObject> links, string kind, string via, JsonObject from, List<JsonObject> targets,
         List<string> evidence, List<string> parts, string? reason, bool keepUnresolved = true, bool fanOut = false)
     {

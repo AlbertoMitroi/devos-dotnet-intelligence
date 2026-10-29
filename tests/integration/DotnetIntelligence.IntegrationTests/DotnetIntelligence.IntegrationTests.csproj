@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="xunit.v3" />
+    <PackageReference Include="YamlDotNet" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />
