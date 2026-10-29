@@ -38,7 +38,9 @@ public static partial class RestoreRunner
             var output = scrubber.Scrub(result.StandardOutputText + "\n" + result.StandardError);
             foreach (Match match in MsBuildError().Matches(output))
             {
-                var projectFile = match.Groups["project"].Success ? match.Groups["project"].Value : match.Groups["file"].Value;
+                // NuGet reports against the project file in front of the message; the bracket names the entry point (often the solution).
+                var file = match.Groups["file"].Value.Trim();
+                var projectFile = file.EndsWith("proj", StringComparison.OrdinalIgnoreCase) || !match.Groups["project"].Success ? file : match.Groups["project"].Value;
                 var relative = projectFile.StartsWith(root, StringComparison.Ordinal) ? projectFile[root.Length..] : projectFile;
                 var message = $"{match.Groups["code"].Value}: {match.Groups["message"].Value.Replace(root, string.Empty, StringComparison.Ordinal).Trim()}";
                 if (!errorsByProject.TryGetValue(relative, out var list))

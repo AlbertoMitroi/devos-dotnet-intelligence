@@ -1,0 +1,12 @@
+# Fixture 3: the same type name in two projects gives two entities, told apart by the project path.
+exitCode: 0
+status: complete
+loadModes:
+  src/Alpha/Alpha.csproj: semantic
+  src/Beta/Beta.csproj: semantic
+declarations:
+  - entity: src/Alpha/Alpha.csproj|T:Shared.Widget
+    at: [src/Alpha/Widget.cs:3]
+  - entity: src/Beta/Beta.csproj|T:Shared.Widget
+    at: [src/Beta/Widget.cs:3]
+links: []

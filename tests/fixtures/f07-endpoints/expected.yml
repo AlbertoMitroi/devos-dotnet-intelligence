@@ -1,0 +1,66 @@
+# Fixture 7: minimal APIs with nested MapGroup prefixes through locals and a folded constant route, MapMethods,
+# attribute-routed controller actions and a conventionally routed controller.
+exitCode: 0
+status: complete
+loadModes:
+  src/Web/Web.csproj: semantic
+observations:
+  kinds: [http.endpoint]
+  items:
+    - kind: http.endpoint
+      method: GET
+      routeTemplate: /api/v1/items
+      canonicalRoute: /api/v1/items
+      resolution: exact
+      ext.dotnet.style: minimal
+      at: src/Web/Program.cs:9
+    - kind: http.endpoint
+      method: POST
+      routeTemplate: /api/v1/items/{id:int}
+      canonicalRoute: /api/v1/items/{}
+      resolution: exact
+      ext.dotnet.style: minimal
+      at: src/Web/Program.cs:10
+    - kind: http.endpoint
+      method: GET
+      canonicalRoute: /health
+      resolution: exact
+      at: src/Web/Program.cs:11
+    - kind: http.endpoint
+      method: HEAD
+      canonicalRoute: /health
+      resolution: exact
+      at: src/Web/Program.cs:11
+    - kind: http.endpoint
+      method: GET
+      routeTemplate: /api/Orders/{id:int}
+      canonicalRoute: /api/orders/{}
+      handler: src/Web/Web.csproj|M:Web.OrdersController.Get(System.Int32)
+      resolution: exact
+      ext.dotnet.style: attribute
+      at: src/Web/Controllers.cs:9
+    - kind: http.endpoint
+      method: POST
+      routeTemplate: /api/Orders
+      canonicalRoute: /api/orders
+      handler: src/Web/Web.csproj|M:Web.OrdersController.Create
+      resolution: exact
+      ext.dotnet.style: attribute
+      at: src/Web/Controllers.cs:12
+    - kind: http.endpoint
+      method: "*"
+      routeTemplate: /Home/Index/{id?}
+      canonicalRoute: /home/index/{?}
+      handler: src/Web/Web.csproj|M:Web.HomeController.Index
+      resolution: candidate
+      ext.dotnet.style: conventional
+      at: src/Web/Controllers.cs:18
+    - kind: http.endpoint
+      method: "*"
+      routeTemplate: /Home/About/{id?}
+      canonicalRoute: /home/about/{?}
+      handler: src/Web/Web.csproj|M:Web.HomeController.About
+      resolution: candidate
+      ext.dotnet.style: conventional
+      at: src/Web/Controllers.cs:20
+links: []

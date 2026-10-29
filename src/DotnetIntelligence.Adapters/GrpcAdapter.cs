@@ -94,6 +94,12 @@ public sealed partial class GrpcAdapter(AdapterContext context)
         {
             return;
         }
+        // The generated client's own overloads call each other; only calls from outside the client are application calls.
+        if (model.GetEnclosingSymbol(invocation.Syntax.SpanStart)?.ContainingType is { } caller
+            && SymbolEqualityComparer.Default.Equals(caller.OriginalDefinition, client.OriginalDefinition))
+        {
+            return;
+        }
         var rpc = method.Name.EndsWith("Async", StringComparison.Ordinal) && client.GetMembers(method.Name[..^5]).Any() ? method.Name[..^5] : method.Name;
         context.Observe("grpc.call", new JsonObject
         {

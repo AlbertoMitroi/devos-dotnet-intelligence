@@ -1,0 +1,52 @@
+# Fixture 10: messaging through a custom abstraction (IMessageBus, IHandles<T>, Subscribe<T, THandler>).
+# Without conventions only the publish call is a heuristic candidate ("Publish..." with an argument derived from the
+# parameter's base type); IHandles does not end with "Handler", so subscribers are not found. With the convention file
+# every match is exact and the publish reaches the subscription in the other service.
+runs:
+  - exitCode: 0
+    status: complete
+    loadModes:
+      src/Billing/Billing.csproj: semantic
+      src/Bus/Bus.csproj: semantic
+      src/Sales/Sales.csproj: semantic
+    observations:
+      kinds: [messaging.publish, messaging.subscribe]
+      items:
+        - kind: messaging.publish
+          publisher: src/Sales/Sales.csproj|M:Sales.Checkout.Complete(System.Int32)
+          resolution: candidate
+          contract:
+            entity: src/Sales/Sales.csproj|T:Sales.OrderPlaced
+            identity: src/Sales/Sales.csproj|T:Sales.OrderPlaced
+          at: src/Sales/Checkout.cs:7
+    links:
+      - messaging possible_communication unresolved src/Sales/Checkout.cs:7 -> null
+  - config: conventions.yml
+    exitCode: 0
+    status: complete
+    observations:
+      kinds: [messaging.publish, messaging.subscribe]
+      items:
+        - kind: messaging.publish
+          resolution: exact
+          contract:
+            identity: name:OrderPlaced
+          at: src/Sales/Checkout.cs:7
+        - kind: messaging.subscribe
+          handler: src/Billing/Billing.csproj|T:Billing.OrderPlacedHandler
+          resolution: exact
+          ext.dotnet.via: handler-interface
+          contract:
+            entity: src/Billing/Billing.csproj|T:Billing.OrderPlaced
+            identity: name:OrderPlaced
+          at: src/Billing/OrderPlacedHandler.cs:5
+        - kind: messaging.subscribe
+          handler: src/Billing/Billing.csproj|T:Billing.OrderPlacedHandler
+          resolution: exact
+          ext.dotnet.via: subscription
+          at: src/Billing/OrderPlacedHandler.cs:12
+    diagnostics:
+      - code: configuration-applied
+        scope: repository
+    links:
+      - messaging consumes_contract exact src/Sales/Checkout.cs:7 -> src/Billing/OrderPlacedHandler.cs:5

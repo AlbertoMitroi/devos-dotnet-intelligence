@@ -1,0 +1,14 @@
+# The codebase's own messaging abstraction, named by symbol (4.3). Each service declares its own copy of an
+# event and the bus routes by type name, so the contract identity is the simple type name.
+messaging:
+  contractIdentity: typeName
+  publish:
+    - method: Bus.IMessageBus.PublishAsync
+      eventArgument: 0
+  subscribe:
+    - method: Bus.Subscriptions.Subscribe
+      eventTypeArgument: 0
+      handlerTypeArgument: 1
+  handlerInterfaces:
+    - type: Bus.IHandles
+      eventTypeArgument: 0

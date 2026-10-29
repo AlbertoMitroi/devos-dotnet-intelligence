@@ -1,0 +1,20 @@
+# Fixture 14: a project that needs a workload the image does not contain. It is reported as unsupported,
+# parsed with the syntax fallback, and the other project is analyzed semantically.
+exitCode: 10
+status: partial
+loadModes:
+  src/Core/Core.csproj: semantic
+  src/Mobile/Mobile.csproj: syntax
+diagnostics:
+  - code: missing-workload
+    scope: src/Mobile/Mobile.csproj
+  - code: syntax-only
+    scope: src/Mobile/Mobile.csproj
+declarations:
+  - entity: src/Mobile/Mobile.csproj|T:Mobile.Phone
+    at: [src/Mobile/Phone.cs:3]
+  - entity: src/Mobile/Mobile.csproj|P:Mobile.Phone.Model
+    at: [src/Mobile/Phone.cs:5]
+  - entity: src/Core/Core.csproj|T:Core.Engine
+    at: [src/Core/Core.cs:3]
+links: []

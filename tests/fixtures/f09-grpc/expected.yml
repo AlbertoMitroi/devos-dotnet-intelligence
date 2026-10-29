@@ -1,0 +1,32 @@
+# Fixture 9: a gRPC service and client generated from one .proto file (server and client roles from the
+# Protobuf items), linked by the fully qualified service and method; the client is registered with AddGrpcClient.
+exitCode: 0
+status: complete
+loadModes:
+  src/Greeter.Client/Greeter.Client.csproj: semantic
+  src/Greeter.Server/Greeter.Server.csproj: semantic
+observations:
+  kinds: [grpc.proto, grpc.service, grpc.call]
+  items:
+    - kind: grpc.proto
+      service: greet.Greeter
+      proto: protos/greet.proto
+      role: server
+      at: protos/greet.proto:7
+    - kind: grpc.proto
+      service: greet.Greeter
+      proto: protos/greet.proto
+      role: client
+      at: protos/greet.proto:7
+    - kind: grpc.service
+      service: greet.Greeter
+      method: SayHello
+      implementation: src/Greeter.Server/Greeter.Server.csproj|M:Greet.GreeterService.SayHello(Greet.HelloRequest,Grpc.Core.ServerCallContext)
+      at: src/Greeter.Server/GreeterService.cs:7
+    - kind: grpc.call
+      service: greet.Greeter
+      method: SayHello
+      at: src/Greeter.Client/Program.cs:7
+links:
+  - grpc consumes_contract exact src/Greeter.Client/Program.cs:7 -> src/Greeter.Server/GreeterService.cs:7
+  - di consumes_contract exact src/Greeter.Client/Program.cs:6 -> src/Greeter.Client/Program.cs:4

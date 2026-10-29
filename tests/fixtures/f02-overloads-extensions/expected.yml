@@ -1,0 +1,21 @@
+# Fixture 2: overloads resolved to the exact target and an extension method call resolved to its definition.
+exitCode: 0
+status: complete
+loadModes:
+  src/Text/Text.csproj: semantic
+relations:
+  - kinds: [calls_declared_target]
+    from: src/Text/Text.csproj|M:Text.Usage.Run
+    items:
+      - calls_declared_target src/Text/Text.csproj|M:Text.Usage.Run -> src/Text/Text.csproj|M:Text.Formatter.Format(System.Int32) @src/Text/Usage.cs:7
+      - calls_declared_target src/Text/Text.csproj|M:Text.Usage.Run -> src/Text/Text.csproj|M:Text.Formatter.Format(System.String) @src/Text/Usage.cs:8
+      - calls_declared_target src/Text/Text.csproj|M:Text.Usage.Run -> src/Text/Text.csproj|M:Text.Formatter.Shout(System.String) @src/Text/Usage.cs:9
+  - kinds: [references]
+    from: src/Text/Text.csproj|M:Text.Usage.Run
+    to: src/Text/Text.csproj|
+    items:
+      - references src/Text/Text.csproj|M:Text.Usage.Run -> src/Text/Text.csproj|T:Text.Formatter usage=other @src/Text/Usage.cs:7,src/Text/Usage.cs:8
+      - references src/Text/Text.csproj|M:Text.Usage.Run -> src/Text/Text.csproj|M:Text.Formatter.Format(System.Int32) usage=invocation @src/Text/Usage.cs:7
+      - references src/Text/Text.csproj|M:Text.Usage.Run -> src/Text/Text.csproj|M:Text.Formatter.Format(System.String) usage=invocation @src/Text/Usage.cs:8
+      - references src/Text/Text.csproj|M:Text.Usage.Run -> src/Text/Text.csproj|M:Text.Formatter.Shout(System.String) usage=invocation @src/Text/Usage.cs:9
+links: []

@@ -42,6 +42,11 @@ done
 step "fixture analyses"
 for repo in "$work"/repos/*/; do
   name="$(basename "$repo")"
+  # The expected exit code of the first run in the fixture's expected.yml (0 when the fixture has none).
+  expected=0
+  if [ -f "$root/tests/fixtures/$name/expected.yml" ]; then
+    expected="$(sed -n 's/^[ -]*exitCode: *\([0-9][0-9]*\).*/\1/p' "$root/tests/fixtures/$name/expected.yml" | head -n 1)"
+  fi
   for run in 1 2; do
     mkdir -p "$work/out/$name-$run"
     set +e
@@ -50,8 +55,8 @@ for repo in "$work"/repos/*/; do
       "$tag" analyze --src /src --out /out > "$work/out/$name-$run.events.ndjson"
     code=$?
     set -e
-    if [ "$code" -ne 0 ]; then
-      echo "analyze $name run $run: exit code $code, expected 0 (complete)" >&2
+    if [ "$code" -ne "$expected" ]; then
+      echo "analyze $name run $run: exit code $code, expected $expected" >&2
       exit 1
     fi
     test -f "$work/out/$name-$run/manifest.json"

@@ -20,7 +20,7 @@ public static partial class Routes
     public static string Canonical(string template)
     {
         var path = template;
-        var query = path.IndexOf('?');
+        var query = QueryStart(path);
         if (query >= 0)
         {
             path = path[..query];
@@ -44,6 +44,27 @@ public static partial class Routes
             }));
         }
         return builder.Length == 0 ? "/" : builder.ToString();
+    }
+
+    /// <summary>Index of the "?" that starts a query string; a "?" inside a route parameter ("{id?}") marks it optional.</summary>
+    public static int QueryStart(string template)
+    {
+        var depth = 0;
+        for (var i = 0; i < template.Length; i++)
+        {
+            switch (template[i])
+            {
+                case '{':
+                    depth++;
+                    break;
+                case '}':
+                    depth = Math.Max(0, depth - 1);
+                    break;
+                case '?' when depth == 0:
+                    return i;
+            }
+        }
+        return -1;
     }
 
     [GeneratedRegex(@"\{([^{}]*)\}")]

@@ -1,0 +1,22 @@
+# Fixture 11: configuration keys with their file and position and a secret flag; no secret value anywhere in the
+# generation (snippets are redacted, values are never stored).
+exitCode: 0
+status: complete
+loadModes:
+  src/Svc/Svc.csproj: semantic
+observations:
+  kinds: [config.key]
+  items:
+    - {kind: config.key, key: "Logging:LogLevel:Default", file: src/Svc/appsettings.json, secret: "false", at: "src/Svc/appsettings.json:4"}
+    - {kind: config.key, key: "ConnectionStrings:Main", file: src/Svc/appsettings.json, secret: "true", at: "src/Svc/appsettings.json:8"}
+    - {kind: config.key, key: "Payments:ApiKey", file: src/Svc/appsettings.json, secret: "true", at: "src/Svc/appsettings.json:11"}
+    - {kind: config.key, key: "Payments:Endpoint", file: src/Svc/appsettings.json, secret: "false", at: "src/Svc/appsettings.json:12"}
+    - {kind: config.key, key: "Hosts:0", file: src/Svc/appsettings.json, secret: "false", at: "src/Svc/appsettings.json:14"}
+    - {kind: config.key, key: "Hosts:1", file: src/Svc/appsettings.json, secret: "false", at: "src/Svc/appsettings.json:14"}
+    - {kind: config.key, key: "Payments:ApiKey", file: src/Svc/appsettings.Development.json, secret: "true", at: "src/Svc/appsettings.Development.json:3"}
+secretsAbsent:
+  - Fixture-Secret-123
+  - sk_fixture_value_456
+  - dev_fixture_value_789
+  - ghp_abcdefghijklmnopqrstuvwxyz0123456789AB
+links: []

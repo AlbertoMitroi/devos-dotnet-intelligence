@@ -1,0 +1,15 @@
+# Fixture 4: multi-targeting with #if. The primary target framework (net10.0, first in the list) is analyzed;
+# the code under the other branch does not exist in that context, and the secondary framework is reported.
+exitCode: 0
+status: complete
+loadModes:
+  src/Multi/Multi.csproj: semantic
+diagnostics:
+  - code: secondary-target-frameworks-not-analyzed
+    scope: src/Multi/Multi.csproj
+declarations:
+  - entity: src/Multi/Multi.csproj|M:Multi.Platform.Name
+    at: [src/Multi/Platform.cs:6]
+absentEntities:
+  - src/Multi/Multi.csproj|M:Multi.Platform.Legacy
+links: []

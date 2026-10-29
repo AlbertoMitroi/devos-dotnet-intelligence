@@ -131,7 +131,7 @@ public static class ContextPackWriter
         AppendList(b, declared.Select(e => $"- {e["kind"]} `{e["signature"]}` ({e["accessibility"]}){Where(declarations, (string)e["id"]!)}"),
             "types", $"graph/relations.ndjson, kind `declares`, from `{projectId}`");
 
-        var entryPoints = entities.Values.Where(e => (string?)e["project"] == path && ((string?)e["documentationId"])?.Contains("<Main>$", StringComparison.Ordinal) == true).ToList();
+        var entryPoints = entities.Values.Where(e => (string?)e["project"] == path && ((string?)e["documentationId"])?.Contains("{Main}$", StringComparison.Ordinal) == true).ToList();
         if (entryPoints.Count > 0)
         {
             b.Append("\n## Entry points\n\n");

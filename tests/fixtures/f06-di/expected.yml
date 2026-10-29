@@ -1,0 +1,96 @@
+# Fixture 6: every DI form of 4.3, a registration through an extension method in another project, and consumers.
+exitCode: 0
+status: complete
+loadModes:
+  src/App/App.csproj: semantic
+  src/Lib/Lib.csproj: semantic
+observations:
+  kinds: [di.registers, di.consumes]
+  items:
+    - kind: di.registers
+      service: src/Lib/Lib.csproj|T:Lib.IClock
+      implementation: src/Lib/Lib.csproj|T:Lib.SystemClock
+      lifetime: singleton
+      factory: "false"
+      key: null
+      conditional: "false"
+      registeredIn: src/Lib/Lib.csproj|M:Lib.LibServices.AddLib(Microsoft.Extensions.DependencyInjection.IServiceCollection)
+      compositionRoot: src/App/App.csproj|M:Program.{Main}$(System.String[])
+      at: src/Lib/LibServices.cs:13
+    - kind: di.registers
+      service: src/App/App.csproj|T:App.IRepository
+      implementation: src/App/App.csproj|T:App.Repository
+      lifetime: scoped
+      conditional: "false"
+      compositionRoot: src/App/App.csproj|M:Program.{Main}$(System.String[])
+      at: src/App/Program.cs:7
+    - kind: di.registers
+      service: src/App/App.csproj|T:App.Reporter
+      implementation: src/App/App.csproj|T:App.Reporter
+      lifetime: transient
+      at: src/App/Program.cs:8
+    - kind: di.registers
+      service: src/App/App.csproj|T:App.ICache
+      implementation: src/App/App.csproj|T:App.MemoryCache
+      factory: "true"
+      lifetime: singleton
+      key: null
+      at: src/App/Program.cs:9
+    - kind: di.registers
+      service: src/App/App.csproj|T:App.ICache
+      implementation: src/App/App.csproj|T:App.MemoryCache
+      factory: "false"
+      lifetime: singleton
+      key: fast
+      at: src/App/Program.cs:10
+    - kind: di.registers
+      service: src/App/App.csproj|T:App.KeyedUser
+      implementation: src/App/App.csproj|T:App.KeyedUser
+      lifetime: scoped
+      at: src/App/Program.cs:11
+    - kind: di.registers
+      implementation: src/App/App.csproj|T:App.Worker
+      lifetime: singleton
+      ext.dotnet.registration: hostedService
+      at: src/App/Program.cs:12
+    - kind: di.registers
+      service: src/App/App.csproj|T:App.WeatherClient
+      lifetime: transient
+      baseAddress: http://weather
+      ext.dotnet.registration: typedHttpClient
+      at: src/App/Program.cs:13
+    - kind: di.registers
+      service: src/App/App.csproj|T:App.Repository
+      lifetime: singleton
+      conditional: "true"
+      at: src/App/Program.cs:16
+    - kind: di.consumes
+      service: src/Lib/Lib.csproj|T:Lib.IClock
+      consumer: src/App/App.csproj|M:App.Reporter.#ctor(Lib.IClock,App.IRepository)
+      via: primaryConstructor
+      at: src/App/Services.cs:10
+    - kind: di.consumes
+      service: src/App/App.csproj|T:App.IRepository
+      consumer: src/App/App.csproj|M:App.Reporter.#ctor(Lib.IClock,App.IRepository)
+      via: primaryConstructor
+      at: src/App/Services.cs:10
+    - kind: di.consumes
+      service: src/App/App.csproj|T:App.ICache
+      via: fromKeyedServices
+      key: fast
+      at: src/App/Services.cs:15
+    - kind: di.consumes
+      via: primaryConstructor
+      consumer: src/App/App.csproj|M:App.WeatherClient.#ctor(System.Net.Http.HttpClient)
+      at: src/App/Services.cs:23
+    - kind: di.consumes
+      service: src/App/App.csproj|T:App.Reporter
+      consumer: src/App/App.csproj|M:Program.{Main}$(System.String[])
+      via: getRequiredService
+      at: src/App/Program.cs:19
+links:
+  - di consumes_contract exact src/App/Services.cs:10 -> src/Lib/LibServices.cs:13
+  - di consumes_contract exact src/App/Services.cs:10 -> src/App/Program.cs:7
+  - di consumes_contract exact src/App/Services.cs:15 -> src/App/Program.cs:10
+  - di consumes_contract exact src/App/Program.cs:19 -> src/App/Program.cs:8
+  - http configured_route unresolved src/App/Services.cs:25 -> null

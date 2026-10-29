@@ -50,13 +50,20 @@ foreach ($fixture in Get-ChildItem -Directory (Join-Path $root 'tests/fixtures')
 Step 'fixture analyses'
 foreach ($repo in Get-ChildItem -Directory (Join-Path $work 'repos')) {
     $name = $repo.Name
+    # The expected exit code of the first run in the fixture's expected.yml (0 when the fixture has none).
+    $expected = 0
+    $expectedFile = Join-Path $root "tests/fixtures/$name/expected.yml"
+    if (Test-Path $expectedFile) {
+        $match = Select-String -Path $expectedFile -Pattern '^[\s-]*exitCode:\s*(\d+)' | Select-Object -First 1
+        if ($match) { $expected = [int]$match.Matches[0].Groups[1].Value }
+    }
     foreach ($run in 1, 2) {
         $out = Join-Path $work "out/$name-$run"
         New-Item -ItemType Directory -Force -Path $out | Out-Null
         $arguments = @('run', '--rm') + (UserArgs) + @('-v', "$($repo.FullName):/src:ro", '-v', "${out}:/out",
             $tag, 'analyze', '--src', '/src', '--out', '/out')
         & docker @arguments | Set-Content -Path (Join-Path $work "out/$name-$run.events.ndjson")
-        if ($LASTEXITCODE -ne 0) { throw "analyze $name run ${run}: exit code $LASTEXITCODE, expected 0 (complete)" }
+        if ($LASTEXITCODE -ne $expected) { throw "analyze $name run ${run}: exit code $LASTEXITCODE, expected $expected" }
         if (-not (Test-Path (Join-Path $out 'manifest.json'))) { throw "analyze $name run ${run}: no manifest" }
     }
     # Byte comparison inside the image, so the check is the same on every host.

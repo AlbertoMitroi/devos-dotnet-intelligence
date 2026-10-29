@@ -1,0 +1,1 @@
+A stand-in for the Aspire hosting API with the same namespaces and member names, so the topology adapter is tested without downloading Aspire. The adapter recognizes symbols by name, and this stub provides exactly those names.

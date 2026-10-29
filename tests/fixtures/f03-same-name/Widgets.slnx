@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Alpha/Alpha.csproj" />
+  <Project Path="src/Beta/Beta.csproj" />
+</Solution>

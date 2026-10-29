@@ -1,0 +1,19 @@
+# Fixture 13: a project whose package cannot be restored. The failure is reported for that project and the
+# run continues with the other one.
+exitCode: 10
+status: partial
+loadModes:
+  src/Bad/Bad.csproj: semantic
+  src/Good/Good.csproj: semantic
+diagnostics:
+  - code: restore-errors
+    scope: src/Bad/Bad.csproj
+  # MSBuildWorkspace reports the same missing package while loading the project.
+  - code: workspace-failure
+    scope: src/Bad/Bad.csproj
+declarations:
+  - entity: src/Good/Good.csproj|T:Good.Fine
+    at: [src/Good/Good.cs:3]
+  - entity: src/Bad/Bad.csproj|T:Bad.Broken
+    at: [src/Bad/Bad.cs:3]
+links: []

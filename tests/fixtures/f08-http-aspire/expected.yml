@@ -1,0 +1,52 @@
+# Fixture 8: a typed HttpClient in Store calls endpoints of Catalog through the base address "http://catalog",
+# which an Aspire AppHost resource maps to the Catalog project; Store references Catalog in the topology.
+# The URL prefix comes from a readonly field. Route precedence picks {id:int} for "items/{}" and "by" for "items/by".
+exitCode: 0
+status: complete
+loadModes:
+  src/AppHost/AppHost.csproj: semantic
+  src/AspireStub/AspireStub.csproj: semantic
+  src/Catalog/Catalog.csproj: semantic
+  src/Store/Store.csproj: semantic
+observations:
+  kinds: [topology.resource, topology.reference, http.call]
+  items:
+    - kind: topology.resource
+      name: catalog
+      resourceType: ProjectResource
+      targetProject: src/Catalog/Catalog.csproj
+      parent: null
+      at: src/AppHost/Program.cs:4
+    - kind: topology.resource
+      name: store
+      resourceType: ProjectResource
+      targetProject: src/Store/Store.csproj
+      parent: null
+      at: src/AppHost/Program.cs:5
+    - kind: topology.reference
+      from: store
+      to: catalog
+      at: src/AppHost/Program.cs:5
+    - kind: http.call
+      method: GET
+      urlTemplate: api/items/{}
+      canonicalRoute: /api/items/{}
+      client: src/Store/Store.csproj|T:Store.CatalogClient
+      resolution: candidate
+      at: src/Store/CatalogClient.cs:7
+    - kind: http.call
+      method: GET
+      urlTemplate: api/items/by?ids=1
+      canonicalRoute: /api/items/by
+      resolution: exact
+      at: src/Store/CatalogClient.cs:9
+    - kind: http.call
+      method: GET
+      urlTemplate: api/nothing
+      canonicalRoute: /api/nothing
+      resolution: exact
+      at: src/Store/CatalogClient.cs:11
+links:
+  - http configured_route candidate src/Store/CatalogClient.cs:7 -> src/Catalog/Program.cs:3
+  - http configured_route exact src/Store/CatalogClient.cs:9 -> src/Catalog/Program.cs:4
+  - http configured_route unresolved src/Store/CatalogClient.cs:11 -> null

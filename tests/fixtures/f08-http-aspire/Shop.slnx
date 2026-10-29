@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/AppHost/AppHost.csproj" />
+  <Project Path="src/AspireStub/AspireStub.csproj" />
+  <Project Path="src/Catalog/Catalog.csproj" />
+  <Project Path="src/Store/Store.csproj" />
+</Solution>

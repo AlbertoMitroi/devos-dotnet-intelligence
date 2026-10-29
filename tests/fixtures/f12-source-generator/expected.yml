@@ -1,0 +1,16 @@
+# Fixture 12: a source generator referenced as a project (OutputItemType="Analyzer"). The engine does not build
+# projects, so the generator assembly does not exist when the workspace loads; the generated type is missing and
+# the failure must be reported, never silent.
+exitCode: 10
+status: partial
+loadModes:
+  src/App/App.csproj: semantic
+  src/Gen/Gen.csproj: semantic
+diagnostics:
+  - code: compilation-errors
+    scope: src/App/App.csproj
+absentEntities:
+  - src/App/App.csproj|T:Generated.Hello
+entities:
+  - src/Gen/Gen.csproj|T:Gen.HelloGenerator
+links: []

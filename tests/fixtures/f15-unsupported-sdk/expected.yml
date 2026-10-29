@@ -1,0 +1,15 @@
+# Fixture 15: global.json asks for an SDK the image does not contain (9.0.100, patch roll-forward only).
+# The solution is blocked at preflight (exit code 20), reported, and its project is parsed with the syntax fallback.
+exitCode: 20
+status: partial
+loadModes:
+  src/Old/Old.csproj: syntax
+diagnostics:
+  - code: unsupported-sdk
+    scope: Old.slnx
+  - code: syntax-only
+    scope: src/Old/Old.csproj
+declarations:
+  - entity: src/Old/Old.csproj|T:Old.Legacy
+    at: [src/Old/Legacy.cs:3]
+links: []

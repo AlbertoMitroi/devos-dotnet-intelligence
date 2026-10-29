@@ -54,7 +54,7 @@ public sealed class HttpClientAdapter(AdapterContext context)
             ["client"] = context.IdOf(client),
             ["caller"] = context.EnclosingMember(invocation.Syntax, model),
             // Holes only in the query string do not change which endpoint is called.
-            ["resolution"] = template is null ? "unresolved" : constant || !template.Split('?')[0].Contains("{}", StringComparison.Ordinal) ? "exact" : "candidate",
+            ["resolution"] = template is null ? "unresolved" : constant || !(Routes.QueryStart(template) is var q && q >= 0 ? template[..q] : template).Contains("{}", StringComparison.Ordinal) ? "exact" : "candidate",
         };
         if (template is null)
         {

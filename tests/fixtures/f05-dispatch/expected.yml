@@ -1,0 +1,20 @@
+# Fixture 5: interface dispatch with two implementations and a virtual member with an override.
+exitCode: 0
+status: complete
+loadModes:
+  src/Shapes/Shapes.csproj: semantic
+relations:
+  - kinds: [implements, inherits, overrides]
+    items:
+      - implements src/Shapes/Shapes.csproj|T:Shapes.Circle -> src/Shapes/Shapes.csproj|T:Shapes.IShape @src/Shapes/Shapes.cs:8
+      - implements src/Shapes/Shapes.csproj|T:Shapes.Square -> src/Shapes/Shapes.csproj|T:Shapes.IShape @src/Shapes/Shapes.cs:13
+      - implements src/Shapes/Shapes.csproj|M:Shapes.Circle.Area -> src/Shapes/Shapes.csproj|M:Shapes.IShape.Area @src/Shapes/Shapes.cs:10
+      - implements src/Shapes/Shapes.csproj|M:Shapes.Square.Area -> src/Shapes/Shapes.csproj|M:Shapes.IShape.Area @src/Shapes/Shapes.cs:15
+      - inherits src/Shapes/Shapes.csproj|T:Shapes.Dog -> src/Shapes/Shapes.csproj|T:Shapes.Animal @src/Shapes/Shapes.cs:23
+      - overrides src/Shapes/Shapes.csproj|M:Shapes.Dog.Sound -> src/Shapes/Shapes.csproj|M:Shapes.Animal.Sound @src/Shapes/Shapes.cs:25
+  - kinds: [possible_runtime_target]
+    items:
+      - possible_runtime_target src/Shapes/Shapes.csproj|M:Shapes.Use.Total(Shapes.IShape,Shapes.Animal) -> src/Shapes/Shapes.csproj|M:Shapes.Circle.Area @src/Shapes/Shapes.cs:33
+      - possible_runtime_target src/Shapes/Shapes.csproj|M:Shapes.Use.Total(Shapes.IShape,Shapes.Animal) -> src/Shapes/Shapes.csproj|M:Shapes.Square.Area @src/Shapes/Shapes.cs:33
+      - possible_runtime_target src/Shapes/Shapes.csproj|M:Shapes.Use.Total(Shapes.IShape,Shapes.Animal) -> src/Shapes/Shapes.csproj|M:Shapes.Dog.Sound @src/Shapes/Shapes.cs:32
+links: []
