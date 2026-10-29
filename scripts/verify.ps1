@@ -33,7 +33,7 @@ $version = & docker run --rm --network none $tag version --json
 if ($LASTEXITCODE -ne 0) { throw 'version --json failed' }
 $version | Set-Content -NoNewline -Path (Join-Path $work 'version.json')
 Write-Host $version
-foreach ($expected in '"roslynCompatible":true', '"version":"10.0.403"', '"name":"Microsoft.NETCore.App","version":"10.0.14"') {
+foreach ($expected in '"roslynCompatible":true', '"version":"10.0.403"', '"name":"Microsoft.NETCore.App","version":"10.0.14"', '"version":"9.0.320"', '"version":"8.0.427"') {
     if (-not $version.Contains($expected)) { throw "version --json lacks $expected" }
 }
 $uid = & docker run --rm --entrypoint id $tag -u

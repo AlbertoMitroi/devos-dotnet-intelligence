@@ -54,7 +54,11 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     DI_WORK=/work
 COPY --from=build /app /opt/dotnet-intelligence
 COPY scripts/fixture-repo.sh /opt/dotnet-intelligence/scripts/fixture-repo.sh
-RUN mkdir -p /src /out /cache /config /work \
+# nss_wrapper gives "docker run --user <uid>" an /etc/passwd entry for the tools the engine starts (D24).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libnss-wrapper=1.1.15-2 \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /src /out /cache /config /work \
  && chmod 1777 /out /cache /work
 USER app
 WORKDIR /work

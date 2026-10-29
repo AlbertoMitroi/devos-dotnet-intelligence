@@ -52,6 +52,12 @@ public static class RepositoryAnalyzer
             Directory.CreateDirectory(home);
             toolEnvironment["HOME"] = home;
         }
+        // NuGet 6 (SDK 8) fails on its "NuGet-Migrations" mutex when the user id has no /etc/passwd entry, which is
+        // the case with "docker run --user <uid>". nss_wrapper gives the child processes an entry for this user (D24).
+        foreach (var (key, value) in UserEntry.Environment(toolEnvironment.GetValueOrDefault("HOME") ?? Environment.GetEnvironmentVariable("HOME")))
+        {
+            toolEnvironment[key] = value;
+        }
         // The out-of-process build host of MSBuildWorkspace inherits the process environment.
         foreach (var (key, value) in toolEnvironment)
         {

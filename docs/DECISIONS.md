@@ -15,8 +15,8 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 
 - **Context:** the image must contain the .NET 10 and .NET 9 SDKs (2.2).
 - **Options:** latest patch of each band at implementation time; the exact versions eShop pins (10.0.302, 9.0.200); several feature bands per major.
-- **Choice:** `10.0.403` (runtime 10.0.14) and `9.0.320` (runtime 9.0.22), the latest on 2026-10-29 (PLAN Appendix A.2). .NET 11 (RC) is excluded. The first image ships `10.0.403` only; `9.0.320` follows in the deferred slice (D15).
-- **Reason:** both eShop pins use `rollForward: latestFeature`, so they resolve to these SDKs; the latest patches carry security fixes; one SDK per major keeps the image smaller.
+- **Choice:** `10.0.403` (runtime 10.0.14), `9.0.320` (runtime 9.0.22) and `8.0.427` (runtime 8.0.33), the latest on 2026-10-29 (PLAN Appendix A.2). .NET 11 (RC) is excluded. The first image shipped `10.0.403` only; `9.0.320` and `8.0.427` were added in step 3b (D15), copied with their runtimes, packs and workload manifests from the pinned SDK images. SDK 8 was added because the target system still has .NET 8 solutions.
+- **Reason:** both eShop pins use `rollForward: latestFeature`, so they resolve to these SDKs; eShopOnAbp pins `9.0.0` with `latestFeature` and resolves to `9.0.320`; the latest patches carry security fixes; one SDK per major keeps the image smaller.
 - **Revisit:** on each .NET patch Tuesday (new digest, new image release); when .NET 11 reaches GA the scope decision 1.2 must change first.
 - **Status:** accepted.
 
@@ -27,16 +27,17 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 - **Choice:** `5.9.0`, and the rule compares **assembly versions** of `Microsoft.CodeAnalysis.dll` (engine vs `sdk/<version>/Roslyn/bincore` of each SDK). Both build numbers are recorded in `version --json` and the manifest.
 - **Reason:** recorded in Step 1 (report, section "Roslyn rule"): the nuget.org package `5.9.0` is build `5.9.0-1.26357.3`, while SDK 10.0.403 ships the later servicing build `5.9.0-1.26523.112` of the same release line. Comparing build strings would declare the latest stable package older than the SDK and leave no compliant package on nuget.org. Analyzers and source generators bind to the assembly version (`5.9.0.0` for both), which is what decides whether they load. The Step 0 version of this entry compared `5.9.0` with `5.9.0-1.26523.112` as SemVer strings; that was wrong and is corrected here.
 - **Revisit:** whenever D2 changes; when a later `Microsoft.CodeAnalysis` release appears, prefer the one at or above the SDK build.
-- **Status:** accepted for SDK 10; checked by `ImageToolchainTests` in the test stage.
+- **Measured in step 3b** (`version --json` of the 3-SDK image): engine `5.9.0` (build `5.9.0-1.26357.3`); SDK 10.0.403 compiler `5.9.0` (`5.9.0-1.26523.112`), SDK 9.0.320 compiler `4.14.0` (`4.14.0-3.26064.1`), SDK 8.0.427 compiler `4.11.0` (`4.11.0-3.25569.22`); `roslynCompatible: true`.
+- **Status:** accepted for SDKs 8, 9 and 10; checked by `ImageToolchainTests` in the test stage.
 
 ## D4: SDK selection per solution
 
 - **Context:** a repository may contain solutions pinned to SDK 9 and SDK 10. MSBuild evaluation must use the SDK that the solution's `global.json` selects (4.2.3).
 - **Options:** (a) MSBuildWorkspace 5.x out-of-process BuildHost, which locates MSBuild per project directory; (b) one engine subprocess per resolved SDK, each with that SDK's MSBuild registered, results merged by the parent; (c) a single MSBuild for all projects.
-- **Choice:** (a) for the single-SDK image. Spike S1, first part, passed in Step 1: `WorkspaceSpikeTests` opens the `.slnx` of fixture f00 with `MSBuildWorkspace.Create()` (no `Microsoft.Build.Locator`) in the image's test stage, with only runtime 10.0.14 present; the project loads with its document, no failure-level `WorkspaceFailed` diagnostic and no compilation error. The second part (two SDKs, selection per `global.json`) runs in slice 9a; (b) stays the fallback. (c) is rejected: it silently changes evaluation results.
+- **Choice:** (a). Spike S1, first part, passed in Step 1: `WorkspaceSpikeTests` opens the `.slnx` of fixture f00 with `MSBuildWorkspace.Create()` (no `Microsoft.Build.Locator`) in the image's test stage, with only runtime 10.0.14 present; the project loads with its document, no failure-level `WorkspaceFailed` diagnostic and no compilation error. The second part passed in step 3b, in the image with SDKs 8, 9 and 10: fixture f18 has two solutions under different `global.json` files in one repository; each project is evaluated by its own SDK (`resolvedSdk` 8.0.427 and 10.0.403, and the SDK-derived preprocessor symbols differ per project in the same run); f16 (SDK 8) and f17 (SDK 9) load semantically. (b) is not needed. (c) is rejected: it silently changes evaluation results.
 - **Reason:** (a) needs no custom process orchestration.
-- **Revisit:** slice 9a.
-- **Status:** accepted for SDK 10; open for SDK 9.
+- **Revisit:** if a target repository shows a project evaluated by the wrong SDK.
+- **Status:** accepted for SDKs 8, 9 and 10.
 
 ## D5: Generating C# types from the schema
 
@@ -128,7 +129,8 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 - **Reason:** owner's decision on 2026-10-29: test on the SDK the target repository uses before widening. Smaller image (A.5) and faster CI while the extractor is built.
 - **Constraint:** the code treats the SDK set as a list from the start (resolution, Roslyn rule, `version --json`), so adding SDK 9 is an image change plus fixtures, not a redesign.
 - **Revisit:** at the Gate 3 review, or as soon as a target repository needs SDK 9.
-- **Status:** accepted (deviation from 2.2, recorded in every gate report until closed).
+- **Closed (step 3b, 2026-10-29):** the target system needs SDK 8 and 9, so both were added (D2). Fixtures f16 (SDK 8), f17 (SDK 9) and f18 (two SDKs in one repository) pass in the image; fixture 15 keeps its case, because `9.0.100` with `rollForward: latestPatch` still has no matching SDK (only `9.0.3xx` is in the image).
+- **Status:** closed; the deviation from 2.2 no longer applies.
 
 ## D16: Action image runs as root
 
@@ -194,4 +196,13 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 - **Context:** step 3b adds adapters by resolved symbol for MassTransit 8, MediatR, Marten, SignalR, Elasticsearch, EF Core tables, BPMN, workflow handler conventions, Terraform and ABP. Fixtures need the real libraries where possible.
 - **Choice:** fixtures use real packages: MassTransit `8.5.12` (9.x is commercially licensed; the target system uses 8), MediatR `12.5.0` (13 and later are commercially licensed; the target uses 12), Marten `9.55.0` (every Marten from 7.0.0 to 9.12.0 has the critical advisory GHSA-rfx3-98h7-v3xp; the adapter also matches Marten 8, whose event and projection APIs are declared in `Marten.*`, while 9 declares them in `JasperFx.Events.*`), Elastic.Clients.Elasticsearch `8.19.27`, EF Core Relational `10.0.14`. ABP uses a stub with ABP's names (fixture 23), as the Aspire stub (D20); real ABP 9.0.0 is covered by the eShopOnAbp run. Libraries with an adapter of their own are excluded from the generic messaging heuristics, so they never produce duplicate candidates.
 - **Reason:** exact matching by symbol needs the real symbols; licenses and advisories decide the versions.
+- **Status:** accepted.
+
+## D24: User entry for "docker run --user <uid>"
+
+- **Context:** `scripts/verify.sh` and the documented usage run the image with `--user "$(id -u):$(id -g)"`, so outputs belong to the host user. Such a uid has no `/etc/passwd` entry in the image. SDK 10 restores fine; SDK 8 does not: its NuGet fails in the restore task with `System.IO.IOException: The system cannot open the device or file specified. : 'NuGet-Migrations'` (measured on fixture f16 in step 3b; root, the image user `app` and a uid with a passwd entry restore; `HOME`, `TMPDIR`, `USER`, the first-use sentinel and rolling SDK 8 forward to runtime 10 do not help).
+- **Options:** a world-writable `/etc/passwd` filled at start (weakens the image); requiring the image user (outputs owned by uid 1654 on the host); nss_wrapper for the child processes.
+- **Choice:** nss_wrapper. The runtime stage installs `libnss-wrapper` `1.1.15-2`; when the effective uid has no entry, the engine writes a passwd and group file under the tool `HOME` and sets `LD_PRELOAD`, `NSS_WRAPPER_PASSWD` and `NSS_WRAPPER_GROUP` for the processes it starts (restore, evaluation, the MSBuild build host). Nothing changes when the entry exists.
+- **Reason:** scoped to the tools the engine runs, no change to system files, one small package.
+- **Revisit:** when a later SDK 8 NuGet no longer needs a user entry, or when SDK 8 leaves the image.
 - **Status:** accepted.

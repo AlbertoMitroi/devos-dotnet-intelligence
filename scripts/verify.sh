@@ -29,6 +29,8 @@ docker run --rm --network none "$tag" version --json | tee "$work/version.json"
 grep -q "\"roslynCompatible\":true" "$work/version.json"
 grep -q '"version":"10.0.403"' "$work/version.json"
 grep -q '"name":"Microsoft.NETCore.App","version":"10.0.14"' "$work/version.json"
+grep -q '"version":"9.0.320"' "$work/version.json"
+grep -q '"version":"8.0.427"' "$work/version.json"
 [ "$(docker run --rm --entrypoint id "$tag" -u)" != "0" ]
 
 step "fixture repositories"
