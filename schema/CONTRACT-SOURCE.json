@@ -1,0 +1,17 @@
+{
+  "repository": "intelligence-contract",
+  "commit": "ea4975a9f9f1891a1951278a2facbb6d2260817b",
+  "files": {
+    "schema/v1/analysis-context.schema.json": "9491d614ad7d79e9b7ab0127db68f5fe38783228225e45040bac5c76157b8178",
+    "schema/v1/declaration.schema.json": "acec04d658e5df58c92a01134f4daf6af0e16f6136aa71486243ec4df71b3a29",
+    "schema/v1/diagnostic.schema.json": "9e99313c74ca42b249a594c8a9a6b104cffa266adec144912b70d741a16b1775",
+    "schema/v1/entity.schema.json": "72c67582fcc6fd24924b88d2a337c9c818825a7149be1170bc9a6f052f6b8be3",
+    "schema/v1/evidence.schema.json": "7f20ce4ac39d46cb26e3f49b31e9ca229f8a5a6eadd8121c9089ce113da968f5",
+    "schema/v1/link.schema.json": "c829f6d7810f53340d3355b77c1f0ab3ee634a318ae314465f5dbe92fd4fedf7",
+    "schema/v1/manifest.schema.json": "f8be04dee8e92a14adeff80de25b9073539400a7182ffdf7b3fabaec0905c54d",
+    "schema/v1/observation.schema.json": "f03da4ef2aff662f00c8339d5af24fb7e6282dda861e84c029b2a689f646245c",
+    "schema/v1/project.schema.json": "3accf4c0f1e32a38ddd1977298459845edb092f37c74cc814cd93611859d5b43",
+    "schema/v1/relation.schema.json": "94b38b7e06f70aff6322b20be6f8f121058596253bae82b8864a972faeeab3a7",
+    "schema/v1/snippet.schema.json": "a2ec7e38b3abeba580251ff03a2a57a07ff0a1fe5cacb1495540fb02164271ec"
+  }
+}

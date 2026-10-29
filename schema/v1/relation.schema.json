@@ -55,7 +55,9 @@
         "nameof",
         "typeof",
         "attribute",
-        "other"
+        "other",
+        "decorator",
+        "import"
       ]
     },
     "declaredTarget": {

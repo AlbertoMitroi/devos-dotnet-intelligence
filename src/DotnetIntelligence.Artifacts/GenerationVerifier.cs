@@ -19,7 +19,12 @@ public static class GenerationVerifier
         "declares", "contains", "references", "calls_declared_target", "overrides", "implements", "inherits", "possible_runtime_target",
     };
 
-    public static readonly IReadOnlySet<string> LinkKinds = new HashSet<string>(StringComparer.Ordinal) { "consumes_contract", "configured_route", "possible_communication" };
+    public static readonly IReadOnlySet<string> LinkKinds = new HashSet<string>(StringComparer.Ordinal) 
+    {
+        "consumes_contract", "configured_route", "possible_communication",
+        // v1.1
+        "dispatches_to", "implemented_by_package", "pushes_to",
+    };
 
     /// <summary>Kinds this engine does not know (from a newer minor): kept, excluded from traversal and linking, reported (3.5).</summary>
     public static IReadOnlyList<string> UnknownKinds(string root)

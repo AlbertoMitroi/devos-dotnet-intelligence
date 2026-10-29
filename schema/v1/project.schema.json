@@ -75,6 +75,42 @@
           "usages"
         ]
       }
+    },
+    "language": {
+      "enum": [
+        "csharp",
+        "typescript"
+      ]
+    },
+    "packageId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "packageVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "npmName": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "npmVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "isPackable": {
+      "type": [
+        "boolean",
+        "null"
+      ]
     }
   },
   "additionalProperties": true

@@ -9,8 +9,6 @@
     "status",
     "engine",
     "imageDigest",
-    "roslyn",
-    "sdks",
     "repository",
     "commit",
     "dirty",
@@ -52,7 +50,8 @@
       "required": [
         "apiVersion",
         "build"
-      ]
+      ],
+      "description": "Required for .NET engines (dotnet-intelligence); absent for engines without Roslyn (v1.1)."
     },
     "sdks": {
       "type": "array",
@@ -61,7 +60,8 @@
         "required": [
           "version"
         ]
-      }
+      },
+      "description": "Required for .NET engines (dotnet-intelligence); absent for engines without .NET SDKs (v1.1)."
     },
     "repository": {
       "type": "object",
@@ -123,6 +123,14 @@
           }
         }
       }
+    },
+    "toolchain": {
+      "type": "object",
+      "description": "v1.1: engine-neutral toolchain identity (for example TypeScript and Node versions); optional.",
+      "required": [
+        "name",
+        "version"
+      ]
     }
   },
   "additionalProperties": true

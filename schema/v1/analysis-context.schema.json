@@ -8,9 +8,7 @@
     "recordType",
     "project",
     "projectId",
-    "targetFramework",
     "configuration",
-    "preprocessorSymbols",
     "loadMode",
     "reason"
   ],

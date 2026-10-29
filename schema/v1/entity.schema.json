@@ -16,7 +16,7 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^dotnet:"
+      "pattern": "^(dotnet|ts):"
     },
     "kind": {
       "type": "string"

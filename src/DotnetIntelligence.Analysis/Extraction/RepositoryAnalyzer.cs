@@ -147,7 +147,7 @@ public static class RepositoryAnalyzer
                 syntaxProjects.Add((project, contextId, projectId, reason));
                 mode = "syntax";
             }
-            projectRecords.Add(ProjectRecord(project, projectId, loadedProject, resolvedSdk.GetValueOrDefault(project.Path), assets.GetValueOrDefault(project.Path), files));
+            projectRecords.Add(ProjectRecord(project, projectId, loadedProject, resolvedSdk.GetValueOrDefault(project.Path), assets.GetValueOrDefault(project.Path), evaluations.GetValueOrDefault(project.Path), files));
             contextRecords.Add(new JsonObject
             {
                 ["id"] = contextId,
@@ -234,14 +234,14 @@ public static class RepositoryAnalyzer
         return loaded?.Reason ?? "MSBuildWorkspace did not load the project.";
     }
 
-    private static JsonObject ProjectRecord(DiscoveredProject project, string projectId, LoadedProject? loaded, string? sdk, AssetsFile? assets, FileMap files)
+    private static JsonObject ProjectRecord(DiscoveredProject project, string projectId, LoadedProject? loaded, string? sdk, AssetsFile? assets, ProjectEvaluation? evaluation, FileMap files)
     {
         var references = loaded?.Project is { } p
             ? p.ProjectReferences.Select(r => p.Solution.GetProject(r.ProjectId)?.FilePath).Where(f => f is not null)
                 .Select(f => files.Relative(Path.GetFullPath(f!))).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList()
             : [];
         var packages = assets is null || loaded is null ? [] : assets.PackagesFor(loaded.TargetFramework);
-        return new JsonObject
+        var record = new JsonObject
         {
             ["id"] = projectId,
             ["recordType"] = "project",
@@ -253,5 +253,15 @@ public static class RepositoryAnalyzer
             ["projectReferences"] = new JsonArray(references.Select(r => (JsonNode)r).ToArray()),
             ["packages"] = new JsonArray(packages.Select(pkg => (JsonNode)new JsonObject { ["id"] = pkg.Name, ["version"] = pkg.Version, ["direct"] = pkg.Direct }).ToArray()),
         };
+        // Contract v1.1: language and the evaluated package identity, so a federation can resolve dotnet:pkg:{packageId}@{version}
+        // to this project's source. Unknown (not evaluated) is null, never a guess.
+        if (project.Path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            record["language"] = "csharp";
+        }
+        record["packageId"] = evaluation?.PackageId;
+        record["packageVersion"] = evaluation?.PackageVersion;
+        record["isPackable"] = evaluation?.IsPackable;
+        return record;
     }
 }

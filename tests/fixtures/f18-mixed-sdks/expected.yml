@@ -1,0 +1,22 @@
+# Fixture 18: two solutions in one repository, each under its own global.json: net8/ pins SDK 8.0.4xx (latestPatch),
+# net10/ asks for 10.0.100 with latestFeature. Each solution is evaluated by its own SDK (D4, spike S1 part 2): the
+# preprocessor symbol derived from the evaluating SDK differs per project in the same run.
+exitCode: 0
+status: complete
+loadModes:
+  net8/src/Old/Old.csproj: semantic
+  net10/src/New/New.csproj: semantic
+projects:
+  net8/src/Old/Old.csproj:
+    resolvedSdk: 8.0.427
+    targetFrameworks: [net8.0]
+  net10/src/New/New.csproj:
+    resolvedSdk: 10.0.403
+    targetFrameworks: [net10.0]
+entities:
+  - net8/src/Old/Old.csproj|T:Old.EvaluatedBySdk8
+  - net10/src/New/New.csproj|T:New.EvaluatedBySdk10
+absentEntities:
+  - net8/src/Old/Old.csproj|T:Old.EvaluatedBySdk10
+  - net10/src/New/New.csproj|T:New.EvaluatedBySdk8
+links: []

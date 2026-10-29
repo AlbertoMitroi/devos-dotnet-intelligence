@@ -1,4 +1,5 @@
-# Fixture 15: global.json asks for an SDK the image does not contain (9.0.100, patch roll-forward only).
+# Fixture 15: global.json asks for an SDK the image does not contain (9.0.100 with latestPatch; the image's SDK 9 is
+# 9.0.320, another feature band, so patch roll-forward cannot reach it).
 # The solution is blocked at preflight (exit code 20), reported, and its project is parsed with the syntax fallback.
 exitCode: 20
 status: partial

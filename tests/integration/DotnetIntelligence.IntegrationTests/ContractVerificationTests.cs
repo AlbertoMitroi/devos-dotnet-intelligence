@@ -75,6 +75,32 @@ public class ContractVerificationTests : IDisposable
         Assert.StartsWith("ok", stdout);
     }
 
+    /// <summary>The vendored schema is v1.1 and only widens v1.0: a generation without any v1.1 field still verifies.</summary>
+    [Fact]
+    public async Task A_v1_0_generation_is_accepted_by_the_v1_1_schema()
+    {
+        var root = Copy(await GenerationAsync(), "v1.0");
+        EditLines(root, "graph/projects.ndjson", lines => lines.Select(line =>
+        {
+            var record = JsonNode.Parse(line)!.AsObject();
+            foreach (var field in new[] { "language", "packageId", "packageVersion", "isPackable" })
+            {
+                record.Remove(field);
+            }
+            return CanonicalJson.Serialize(record);
+        }).ToList());
+        var manifestPath = Path.Combine(root, "manifest.json");
+        var manifest = JsonNode.Parse(File.ReadAllText(manifestPath))!.AsObject();
+        manifest["schemaVersion"] = "1.0";
+        CanonicalJson.WriteDocument(manifestPath, manifest);
+        Reseal(root);
+
+        var (code, stdout, stderr) = await Verify(root);
+
+        Assert.True(code == ExitCodes.Complete, stderr);
+        Assert.StartsWith("ok", stdout);
+    }
+
     [Fact]
     public async Task A_dangling_reference_is_rejected()
     {
@@ -154,7 +180,7 @@ public class ContractVerificationTests : IDisposable
         }).ToList());
         var manifestPath = Path.Combine(copy, "manifest.json");
         var manifest = JsonNode.Parse(File.ReadAllText(manifestPath))!.AsObject();
-        manifest["schemaVersion"] = "1.1";
+        manifest["schemaVersion"] = "1.2";
         manifest["newTopLevelField"] = true;
         CanonicalJson.WriteDocument(manifestPath, manifest);
         Reseal(copy);

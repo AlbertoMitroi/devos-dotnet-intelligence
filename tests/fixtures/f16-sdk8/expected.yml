@@ -1,0 +1,22 @@
+# Fixture: a net8.0 project whose global.json selects SDK 8 (8.0.100 with latestFeature, solution in the .sln format that SDK 8 reads). The project turns the major version of the SDK
+# that evaluated it into a preprocessor symbol, so the entities prove which MSBuild MSBuildWorkspace used (spike S1,
+# part 2): EvaluatedBySdk8 exists, EvaluatedBySdk10 does not. Framework calls bind to the net8.0 targeting pack.
+exitCode: 0
+status: complete
+loadModes:
+  src/Legacy/Legacy.csproj: semantic
+projects:
+  src/Legacy/Legacy.csproj:
+    resolvedSdk: 8.0.427
+    targetFrameworks: [net8.0]
+entities:
+  - src/Legacy/Legacy.csproj|T:Legacy.EvaluatedBySdk8
+absentEntities:
+  - src/Legacy/Legacy.csproj|T:Legacy.EvaluatedBySdk10
+relations:
+  - kinds: [calls_declared_target]
+    from: src/Legacy/Legacy.csproj|M:Legacy.
+    items:
+      - calls_declared_target src/Legacy/Legacy.csproj|M:Legacy.Service.Describe -> src/Legacy/Legacy.csproj|M:Legacy.Formatter.Format(System.Int32) @src/Legacy/Probe.cs:13
+      - calls_declared_target src/Legacy/Legacy.csproj|M:Legacy.Formatter.Format(System.Int32) -> dotnet:pkg:Microsoft.NETCore.App.Ref@8.0.33:System.Runtime:M:System.Int32.ToString(System.IFormatProvider) @src/Legacy/Probe.cs:18
+links: []

@@ -40,7 +40,7 @@ public sealed class ConfigurationAdapter(AdapterContext context)
     }
 
     /// <summary>Leaf keys as "A:B:0:C" with the byte offset and length of the token that names them.</summary>
-    private static List<(string Key, string? Value, int Offset, int Length)> Keys(byte[] bytes)
+    internal static List<(string Key, string? Value, int Offset, int Length)> Keys(byte[] bytes)
     {
         var results = new List<(string, string?, int, int)>();
         var reader = new Utf8JsonReader(bytes, new JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
@@ -109,14 +109,14 @@ public sealed class ConfigurationAdapter(AdapterContext context)
     }
 
     /// <summary>1-based line and UTF-16 column of a byte offset (D9).</summary>
-    private static (int Line, int Column) Position(byte[] bytes, int offset)
+    internal static (int Line, int Column) Position(byte[] bytes, int offset)
     {
         var text = Encoding.UTF8.GetString(bytes, 0, offset);
         var lastBreak = text.LastIndexOf('\n');
         return (text.Count(c => c == '\n') + 1, text.Length - lastBreak);
     }
 
-    private static string LineAt(byte[] bytes, int offset)
+    internal static string LineAt(byte[] bytes, int offset)
     {
         var start = Array.LastIndexOf(bytes, (byte)'\n', Math.Max(0, offset - 1)) + 1;
         var end = Array.IndexOf(bytes, (byte)'\n', offset);

@@ -26,7 +26,12 @@
         "http",
         "grpc",
         "messaging",
-        "di"
+        "di",
+        "inprocess",
+        "workflow",
+        "realtime",
+        "ui",
+        "package"
       ]
     },
     "from": {

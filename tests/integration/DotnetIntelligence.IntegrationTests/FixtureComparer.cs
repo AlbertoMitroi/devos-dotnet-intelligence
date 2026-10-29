@@ -32,6 +32,28 @@ internal static partial class FixtureComparer
             CompareSets(failures, "load modes", loadModes.Select(p => $"{p.Key}={p.Value}"), actual);
         }
 
+        if (expected["projects"] is JsonObject expectedProjects)
+        {
+            foreach (var (path, fields) in expectedProjects)
+            {
+                var record = projects.FirstOrDefault(p => (string?)p["recordType"] == "project" && (string?)p["path"] == path);
+                if (record is null)
+                {
+                    failures.Add($"missing project record {path}");
+                    continue;
+                }
+                foreach (var (field, value) in fields!.AsObject())
+                {
+                    var expectedText = Text(value);
+                    var actualText = Text(record[field]);
+                    if (expectedText != actualText)
+                    {
+                        failures.Add($"project {path}: {field} '{actualText}', expected '{expectedText}'");
+                    }
+                }
+            }
+        }
+
         var diagnostics = Read(output, "graph/diagnostics.ndjson");
         var expectedDiagnostics = (expected["diagnostics"]?.AsArray() ?? []).Select(d => $"{d!["code"]}@{d["scope"]}").ToList();
         var actualDiagnostics = diagnostics.Select(d => (Key: $"{d["code"]}@{d["scope"]}", Severity: (string)d["severity"]!)).ToList();
@@ -182,6 +204,16 @@ internal static partial class FixtureComparer
         }
         return true;
     }
+
+    /// <summary>Scalars as text (booleans lower-case), arrays as "[a,b]", null as "null"; expected.yml scalars are strings.</summary>
+    private static string Text(JsonNode? node) => node switch
+    {
+        null => "null",
+        JsonArray array => "[" + string.Join(",", array.Select(Text)) + "]",
+        JsonValue v when v.TryGetValue(out string? s) => s,
+        JsonValue v when v.TryGetValue(out bool b) => b ? "true" : "false",
+        _ => node.ToJsonString(),
+    };
 
     private static string Describe(JsonObject observation)
     {

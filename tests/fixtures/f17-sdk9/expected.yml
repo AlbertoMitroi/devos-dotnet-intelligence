@@ -1,0 +1,22 @@
+# Fixture: a net9.0 project whose global.json selects SDK 9 (9.0.100 with latestFeature, .slnx which SDK 9.0.200 and later read). The project turns the major version of the SDK
+# that evaluated it into a preprocessor symbol, so the entities prove which MSBuild MSBuildWorkspace used (spike S1,
+# part 2): EvaluatedBySdk9 exists, EvaluatedBySdk10 does not. Framework calls bind to the net9.0 targeting pack.
+exitCode: 0
+status: complete
+loadModes:
+  src/Legacy/Legacy.csproj: semantic
+projects:
+  src/Legacy/Legacy.csproj:
+    resolvedSdk: 9.0.320
+    targetFrameworks: [net9.0]
+entities:
+  - src/Legacy/Legacy.csproj|T:Legacy.EvaluatedBySdk9
+absentEntities:
+  - src/Legacy/Legacy.csproj|T:Legacy.EvaluatedBySdk10
+relations:
+  - kinds: [calls_declared_target]
+    from: src/Legacy/Legacy.csproj|M:Legacy.
+    items:
+      - calls_declared_target src/Legacy/Legacy.csproj|M:Legacy.Service.Describe -> src/Legacy/Legacy.csproj|M:Legacy.Formatter.Format(System.Int32) @src/Legacy/Probe.cs:13
+      - calls_declared_target src/Legacy/Legacy.csproj|M:Legacy.Formatter.Format(System.Int32) -> dotnet:pkg:Microsoft.NETCore.App.Ref@9.0.22:System.Runtime:M:System.Int32.ToString(System.IFormatProvider) @src/Legacy/Probe.cs:18
+links: []
