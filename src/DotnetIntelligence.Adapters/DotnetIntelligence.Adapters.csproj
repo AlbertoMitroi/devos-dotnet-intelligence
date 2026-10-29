@@ -8,4 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="../DotnetIntelligence.Analysis/DotnetIntelligence.Analysis.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="DotnetIntelligence.UnitTests" />
+  </ItemGroup>
 </Project>

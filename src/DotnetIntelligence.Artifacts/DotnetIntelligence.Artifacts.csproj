@@ -9,4 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="../DotnetIntelligence.Contracts/DotnetIntelligence.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="DotnetIntelligence.UnitTests" />
+  </ItemGroup>
 </Project>

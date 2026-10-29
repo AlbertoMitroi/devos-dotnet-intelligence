@@ -7,6 +7,8 @@ Every dependency is pinned (rule 1.5.4). `DependencyPinTests` fails the build wh
 | Image | Pinned reference | Use | License |
 |---|---|---|---|
 | .NET 10 SDK | `mcr.microsoft.com/dotnet/sdk:10.0.403-noble@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b` | build, test and runtime stages; dependency script | MIT (.NET), Ubuntu packages under their own licenses |
+| .NET 9 SDK | `mcr.microsoft.com/dotnet/sdk:9.0.320-noble@sha256:9a905addac4d4d3bfdd28185030f874251614559b3a038200849619710b3136b` | source of `sdk/9.0.320`, runtime 9.0.22, packs and workload manifests copied into the image (D2) | MIT (.NET) |
+| .NET 8 SDK | `mcr.microsoft.com/dotnet/sdk:8.0.427-noble@sha256:42eb9e70b190d0cca893d93724e67fb89e7570e4309c4b1c20b7f6016a90202d` | source of `sdk/8.0.427`, runtime 8.0.33, packs and workload manifests copied into the image (D2) | MIT (.NET) |
 | actionlint | `docker.io/rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667` | CI lint of workflows | MIT |
 | ORAS | `ghcr.io/oras-project/oras:v1.3.6@sha256:9cfb578be975b762fd898b9d004243d8003aeb807a3e15b2ed212cdd1326c9eb` | example workflow only (OCI push by the caller) | Apache-2.0 |
 
