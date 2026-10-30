@@ -186,7 +186,7 @@ public class IndexAndQueryTests
         partial.BuildIndex();
         var note = Run(partial, "messages");
         Assert.Equal(QueryEngine.NoResults, note.Code);
-        Assert.Contains("the generation is partial (1 syntax only of 2 projects)", note.Text, StringComparison.Ordinal);
+        Assert.Contains("the generation is partial (2 projects: 1 syntax only, 1 diagnostics failed, partial or unsupported)", note.Text, StringComparison.Ordinal);
     }
 
     [Fact]

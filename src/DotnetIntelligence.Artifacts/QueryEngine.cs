@@ -326,7 +326,8 @@ public sealed class QueryEngine : IDisposable
             {
                 return failure;
             }
-            isTarget = node => node == toId;
+            // A type is reached through any of its members.
+            isTarget = node => node == toId || !node.StartsWith("obs:", StringComparison.Ordinal) && ContainerOf(node) == toId;
         }
 
         var depth = options.Depth <= 1 ? 8 : options.Depth;
@@ -474,6 +475,18 @@ public sealed class QueryEngine : IDisposable
 
     private static int Rank(JsonObject step) => Array.IndexOf(Strength, (string)step["resolution"]!) is var i and >= 0 ? i : 3;
 
+    private readonly Dictionary<string, string?> _containers = new(StringComparer.Ordinal);
+
+    private string? ContainerOf(string entity)
+    {
+        if (!_containers.TryGetValue(entity, out var container))
+        {
+            container = Rows("select container from entities where id = $1", entity).FirstOrDefault()?["container"]?.GetValue<string>();
+            _containers[entity] = container;
+        }
+        return container;
+    }
+
     private string? ProjectOf(string node)
     {
         if (node.StartsWith("obs:", StringComparison.Ordinal))
@@ -491,7 +504,8 @@ public sealed class QueryEngine : IDisposable
         {
             return new QueryResult(Usage, "missing search text", null);
         }
-        var match = string.Join(' ', text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(t => "\"" + t.Replace("\"", "\"\"", StringComparison.Ordinal) + "\""));
+        // Every term quoted (no FTS5 syntax from the caller) and matched as a prefix: "OrderPlaced" finds OrderPlacedEto.
+        var match = string.Join(' ', text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(t => "\"" + t.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"*"));
         var rows = options.Kind is null
             ? Rows("select ref, kind, text from search where search match $1 order by rank, ref limit $2", match, options.Limit)
             : Rows("select ref, kind, text from search where search match $1 and kind = $3 order by rank, ref limit $2", match, options.Limit, options.Kind);
@@ -602,8 +616,14 @@ public sealed class QueryEngine : IDisposable
         var parts = new[] { "syntax", "failed", "notAnalyzed" }
             .Select(k => (Key: k, Count: (int?)coverage?[k] ?? 0)).Where(x => x.Count > 0)
             .Select(x => $"{x.Count} {(x.Key == "notAnalyzed" ? "not analyzed" : x.Key == "syntax" ? "syntax only" : "failed")}");
-        var detail = string.Join(", ", parts);
-        return $"\nnote: the generation is {status}{(detail.Length > 0 ? $" ({detail} of {coverage?["total"]} projects)" : string.Empty)}; an absence of results is not proof of absence (see the diagnostics table).";
+        var gaps = Rows("select count(*) as n from diagnostics where severity <> 'info' and state in ('failed', 'partial', 'unsupported')").Single()["n"]!.GetValue<int>();
+        var details = parts.ToList();
+        if (gaps > 0)
+        {
+            details.Add($"{gaps} diagnostics failed, partial or unsupported");
+        }
+        var detail = string.Join(", ", details);
+        return $"\nnote: the generation is {status} ({coverage?["total"]} projects{(detail.Length > 0 ? ": " + detail : string.Empty)}); an absence of results is not proof of absence (see the diagnostics table).";
     }
 
     private static QueryResult List(List<JsonObject> rows, Func<JsonObject, string> format, string empty) =>
