@@ -57,7 +57,7 @@ The engine version is not an annotation: it is in `manifest.json`. A consumer pu
 mkdir -p intelligence-out
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$PWD:/src:ro" -v "$PWD/intelligence-out:/out" \
-  ghcr.io/albertomitroi/dotnet-intelligence:0.1.0 analyze --src /src --out /out
+  ghcr.io/albertomitroi/dotnet-intelligence:0.2.0 analyze --src /src --out /out
 ```
 
 | Mount | Mode | Content |
@@ -76,7 +76,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
 ## Query
 
 ```bash
-docker run --rm -v "$PWD/intelligence-out:/g:ro" ghcr.io/albertomitroi/dotnet-intelligence:0.1.0 query /g http --route /api
+docker run --rm -v "$PWD/intelligence-out:/g:ro" ghcr.io/albertomitroi/dotnet-intelligence:0.2.0 query /g http --route /api
 ```
 
 | Command | Answers |

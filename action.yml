@@ -38,6 +38,6 @@ outputs:
     description: Project coverage as compact JSON (total, semantic, syntax, failed, notAnalyzed).
 runs:
   using: docker
-  image: docker://ghcr.io/albertomitroi/dotnet-intelligence:0.1.0-action
+  image: docker://ghcr.io/albertomitroi/dotnet-intelligence:0.2.0-action
   args:
     - gha

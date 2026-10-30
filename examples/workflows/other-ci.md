@@ -8,7 +8,7 @@ docker run --rm \
   -v "$PWD:/src:ro" \
   -v "$PWD/intelligence-out:/out" \
   -v "$PWD/.dotnet-intelligence/nuget:/cache/nuget" \
-  ghcr.io/albertomitroi/dotnet-intelligence:0.1.0 \
+  ghcr.io/albertomitroi/dotnet-intelligence:0.2.0 \
   analyze --src /src --out /out
 ```
 
@@ -25,7 +25,7 @@ context-artifacts:
   script:
     - mkdir -p intelligence-out
     - docker run --rm -v "$CI_PROJECT_DIR:/src:ro" -v "$CI_PROJECT_DIR/intelligence-out:/out"
-        ghcr.io/albertomitroi/dotnet-intelligence:0.1.0 analyze --src /src --out /out || [ $? -eq 10 ]
+        ghcr.io/albertomitroi/dotnet-intelligence:0.2.0 analyze --src /src --out /out || [ $? -eq 10 ]
   artifacts:
     paths: [intelligence-out/]
 ```
