@@ -137,10 +137,10 @@ jobs:
             assets+=("schema-$VERSION.tar.gz")
           fi
           gh release create "v$VERSION" --title "v$VERSION" --notes "Image: $IMAGE:$VERSION (action: $IMAGE:$VERSION-action)" "${assets[@]}"
-      - name: Move the major tag
-        env:
-          VERSION: ${{ needs.check.outputs.version }}
+      # Callers pin the Action interface major (@v1, D11), not the engine semver major: 0.x
+      # releases move v1 too. A breaking change to the Action inputs or outputs starts v2.
+      - name: Move the Action major tag
         run: |
-          major="v${VERSION%%.*}"
+          major=v1
           git tag -f "$major" "$GITHUB_SHA"
           git push -f origin "refs/tags/$major"

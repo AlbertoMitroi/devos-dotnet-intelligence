@@ -1,5 +1,12 @@
 # Checkout → dotnet-intelligence → push the generation as an OCI artifact.
 # Publishing is the caller's choice; the engine itself never uploads anything.
+#
+# Reference: ghcr.io/<owner>/context-<repository>:<commit sha>, plus a moving :main.
+# The artifact type and layer media type are engine-neutral (shared with angular-intelligence);
+# the engine and its version are in manifest.json inside the layer. The manifest carries the
+# repository and the commit as annotations, so a consumer can check them before unpacking.
+# GHCR creates the package private on the first push; a consumer needs read:packages until the
+# owner makes it public.
 name: context artifacts (OCI)
 
 on:
@@ -16,20 +23,37 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Restore the NuGet cache used by the engine
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .dotnet-intelligence/nuget
+          key: dotnet-intelligence-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: dotnet-intelligence-nuget-
+
       - name: Analyze
         id: intelligence
         uses: AlbertoMitroi/devos-dotnet-intelligence@v1
+        # Private feeds: pass NuGetPackageSourceCredentials_<source key> here, for example
+        # env:
+        #   NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.GITHUB_TOKEN }}
 
       - name: Push the generation with ORAS
+        shell: bash
         env:
           GENERATION: ${{ steps.intelligence.outputs.generation-path }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TARGET: ghcr.io/${{ github.repository_owner }}/context:${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET: ghcr.io/${{ github.repository_owner }}/context-${{ github.event.repository.name }}
         run: |
-          tar -czf generation.tar.gz -C "$GENERATION" .
-          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
-          docker run --rm -v "$PWD:/work" -w /work -v "$HOME/.docker/config.json:/root/.docker/config.json:ro" \
+          # Same generation, same bytes: sorted entries, fixed times and owners, no gzip timestamp.
+          tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C "$GENERATION" -cf - . | gzip -n > generation.tar.gz
+          echo "$REGISTRY_TOKEN" | docker run --rm -i -v "$PWD:/work" -w /work \
             ghcr.io/oras-project/oras:v1.3.6@sha256:9cfb578be975b762fd898b9d004243d8003aeb807a3e15b2ed212cdd1326c9eb \
-            push "${TARGET,,}" --artifact-type application/vnd.dotnet-intelligence.generation.v0+tar \
-            generation.tar.gz:application/gzip
+            push "${TARGET,,}:$GITHUB_SHA,main" -u "$REGISTRY_USER" --password-stdin \
+            --artifact-type application/vnd.devos.intelligence.generation.v1 \
+            --annotation "org.opencontainers.image.source=$GITHUB_SERVER_URL/$REPOSITORY" \
+            --annotation "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --annotation "org.opencontainers.image.ref.name=$GITHUB_REF" \
+            --annotation "io.github.albertomitroi.devos.engine=dotnet-intelligence" \
+            generation.tar.gz:application/vnd.devos.intelligence.generation.v1.tar+gzip
