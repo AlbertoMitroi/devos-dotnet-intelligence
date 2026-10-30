@@ -8,4 +8,7 @@ Questions the engine team cannot answer alone. Independent work continues while 
 | Q2 | Who reviews contract v1 from the consumer side before it is frozen as `1.0`? | Gate 2 | prompt author | publish as `1.0` after the Gate 2 review |
 | Q3 | Are UTF-16 columns (D9) acceptable for the intended consumers? | Gate 2 | prompt author | keep UTF-16 |
 | Q4 | Should symbols without a documentation comment id (D6) be modelled in v1? | Gate 2 | prompt author | out of scope in v1 |
-| Q5 | The repository is public but has no license yet. Which license should the engine use? Without one, others may not legally reuse the code or the image. | Before the first release | repository owner | no release until decided |
+
+## Resolved
+
+- **Q5 (license), 2026-10-30:** MIT (`LICENSE`, "Copyright (c) 2026 Alberto Mitroi"), the owner's choice before the first release. A license cannot be withdrawn from versions already published under it, so the owner chose MIT over Apache-2.0.

@@ -145,7 +145,7 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 
 - **Context:** 2.6 says the release updates `action.yml` to the released version. A tag that points at a commit whose `action.yml` names another version would ship a broken `@v<version>`.
 - **Options:** the workflow commits the new `action.yml` after the tag (then the tag and the action disagree); the release commit carries the version and the workflow checks it.
-- **Choice:** the release commit sets `<Version>` in `Directory.Build.props` and the image tag in `action.yml`; `release.yml` on tag `v<version>` refuses to publish unless tag, `Directory.Build.props` and `action.yml` agree, then pushes `<version>` and `<version>-action` for both architectures with SBOM and provenance, creates the GitHub release (with the schema once it exists) and moves the major tag. `ActionManifestTests` keeps `action.yml` and `Directory.Build.props` in agreement on every build.
+- **Choice:** the release commit sets `<Version>` in `Directory.Build.props` and the image tag in `action.yml`; `release.yml` on tag `v<version>` refuses to publish unless tag, `Directory.Build.props` and `action.yml` agree, then pushes `<version>` and `<version>-action` for both architectures with SBOM and provenance, creates the GitHub release (with the schema once it exists) and moves `v1`. `v1` is the major of the Action interface (inputs and outputs, D11), not of the engine semver, so 0.x releases move it too; a breaking change to the Action starts `v2`. `ActionManifestTests` keeps `action.yml` and `Directory.Build.props` in agreement on every build.
 - **Reason:** every tag is consumable as soon as its images exist.
 - **Revisit:** if releases become automated from main.
 - **Status:** accepted.

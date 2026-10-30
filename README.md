@@ -24,3 +24,7 @@ scripts/verify.sh
 - Usage: [docs/USAGE.md](docs/USAGE.md)
 - Dependencies and licenses: [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md)
 - Reports: [docs/reports/](docs/reports/)
+
+## License
+
+MIT, see [LICENSE](LICENSE).
