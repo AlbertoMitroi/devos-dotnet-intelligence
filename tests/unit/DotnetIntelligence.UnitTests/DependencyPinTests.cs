@@ -48,7 +48,7 @@ public partial class DependencyPinTests
                     || Regex.IsMatch(reference, "@[0-9a-f]{40}$")
                     || (reference.StartsWith("docker://", StringComparison.Ordinal) && reference.Contains("@sha256:"))
                     // Examples show how callers use this action: by its major tag (2.6).
-                    || (file.Contains("/examples/") && reference.StartsWith("AlbertoMitroi/dotnet-intelligence@v", StringComparison.Ordinal));
+                    || (file.Contains("/examples/") && reference.StartsWith("AlbertoMitroi/devos-dotnet-intelligence@v", StringComparison.Ordinal));
                 Assert.True(pinned, $"{Path.GetFileName(file)}: '{reference}' is not pinned");
             }
         }

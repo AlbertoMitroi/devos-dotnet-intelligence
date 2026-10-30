@@ -7,7 +7,7 @@
 ```yaml
 - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 - id: intelligence
-  uses: AlbertoMitroi/dotnet-intelligence@v1
+  uses: AlbertoMitroi/devos-dotnet-intelligence@v1
   with:
     fail-on: failed          # failed | partial | never
 - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

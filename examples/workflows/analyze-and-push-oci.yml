@@ -18,7 +18,7 @@ jobs:
 
       - name: Analyze
         id: intelligence
-        uses: AlbertoMitroi/dotnet-intelligence@v1
+        uses: AlbertoMitroi/devos-dotnet-intelligence@v1
 
       - name: Push the generation with ORAS
         env:

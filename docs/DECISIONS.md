@@ -6,7 +6,7 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 
 - **Context:** the engine needs GitHub Actions, GHCR and arm64 runners (Step 1).
 - **Options:** public repository under `AlbertoMitroi`; private repository under `AlbertoMitroi`; another owner.
-- **Choice:** public `AlbertoMitroi/dotnet-intelligence`; local checkout in `~/repos/devos/dotnet-intelligence`. The remote is created at Step 1.
+- **Choice:** public `AlbertoMitroi/dotnet-intelligence`; local checkout in `~/repos/devos/devos-dotnet-intelligence`. The remote is created at Step 1.
 - **Reason:** owner's choice. Public gives free 4 vCPU arm64 runners and lets any workflow pull the Action image without credentials.
 - **Revisit:** if the engine must become private, callers need GHCR read access and arm64 runners drop to 2 vCPU.
 - **Status:** accepted.
