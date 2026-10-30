@@ -1,0 +1,91 @@
+# Fixture 25: MediatR dispatch as contract v1.2 states it (C8). Send(new PlaceOrder) has one handler: exact. A
+# constructed generic request carries requestTypeArguments and links only to the handler with the same arguments
+# (Envelope<Invoice>); Envelope<Receipt> has none. AuditHandler<T> where T : AuditCommand is an open generic handler:
+# candidate, on its constraint, and receives AuditLogin as a candidate. Two handlers of Ping are both ambiguous.
+# Unhandled has no handler. A send typed IRequest<bool> is a candidate to every handler of a request that implements
+# IRequest<T> (the rule does not compare type arguments). Every handler names the method that implements Handle.
+exitCode: 0
+status: complete
+loadModes:
+  src/Orders/Orders.csproj: semantic
+observations:
+  kinds: [inprocess.send, inprocess.handler]
+  items:
+    - kind: inprocess.send
+      request: src/Orders/Orders.csproj|T:Orders.PlaceOrder
+      sender: src/Orders/Orders.csproj|M:Orders.Api.Place
+      mechanism: mediatr
+      pattern: request
+      resolution: exact
+      siteAt: src/Orders/Api.cs:7
+    - kind: inprocess.send
+      request: src/Orders/Orders.csproj|T:Orders.Envelope`1
+      requestTypeArguments: [src/Orders/Orders.csproj|T:Orders.Invoice]
+      resolution: exact
+      siteAt: src/Orders/Api.cs:9
+    - kind: inprocess.send
+      request: src/Orders/Orders.csproj|T:Orders.Envelope`1
+      requestTypeArguments: [src/Orders/Orders.csproj|T:Orders.Receipt]
+      resolution: exact
+      siteAt: src/Orders/Api.cs:11
+    - kind: inprocess.send
+      request: src/Orders/Orders.csproj|T:Orders.AuditLogin
+      resolution: exact
+      siteAt: src/Orders/Api.cs:13
+    - kind: inprocess.send
+      request: src/Orders/Orders.csproj|T:Orders.Ping
+      resolution: exact
+      siteAt: src/Orders/Api.cs:15
+    - kind: inprocess.send
+      request: src/Orders/Orders.csproj|T:Orders.Unhandled
+      resolution: exact
+      siteAt: src/Orders/Api.cs:17
+    - kind: inprocess.send
+      request: dotnet:pkg:MediatR.Contracts@2.0.1:MediatR.Contracts:T:MediatR.IRequest`1
+      requestTypeArguments: [dotnet:pkg:Microsoft.NETCore.App.Ref@10.0.14:System.Runtime:T:System.Boolean]
+      resolution: candidate
+      siteAt: src/Orders/Api.cs:19
+    - kind: inprocess.handler
+      request: src/Orders/Orders.csproj|T:Orders.PlaceOrder
+      handler: src/Orders/Orders.csproj|T:Orders.PlaceOrderHandler
+      handlerMethod: src/Orders/Orders.csproj|M:Orders.PlaceOrderHandler.Handle(Orders.PlaceOrder,System.Threading.CancellationToken)
+      pattern: request
+      resolution: exact
+      siteAt: src/Orders/Handlers.cs:5
+    - kind: inprocess.handler
+      request: src/Orders/Orders.csproj|T:Orders.Envelope`1
+      requestTypeArguments: [src/Orders/Orders.csproj|T:Orders.Invoice]
+      handler: src/Orders/Orders.csproj|T:Orders.InvoiceEnvelopeHandler
+      handlerMethod: src/Orders/Orders.csproj|M:Orders.InvoiceEnvelopeHandler.Handle(Orders.Envelope{Orders.Invoice},System.Threading.CancellationToken)
+      resolution: exact
+      siteAt: src/Orders/Handlers.cs:10
+    - kind: inprocess.handler
+      request: src/Orders/Orders.csproj|T:Orders.AuditCommand
+      handler: src/Orders/Orders.csproj|T:Orders.AuditHandler`1
+      handlerMethod: src/Orders/Orders.csproj|M:Orders.AuditHandler`1.Handle(`0,System.Threading.CancellationToken)
+      resolution: candidate
+      siteAt: src/Orders/Handlers.cs:15
+    - kind: inprocess.handler
+      request: src/Orders/Orders.csproj|T:Orders.Ping
+      handler: src/Orders/Orders.csproj|T:Orders.PingHandlerA
+      siteAt: src/Orders/Handlers.cs:20
+    - kind: inprocess.handler
+      request: src/Orders/Orders.csproj|T:Orders.Ping
+      handler: src/Orders/Orders.csproj|T:Orders.PingHandlerB
+      siteAt: src/Orders/Handlers.cs:25
+links:
+  - inprocess dispatches_to exact src/Orders/Api.cs:7 -> src/Orders/Handlers.cs:5
+  - inprocess dispatches_to exact src/Orders/Api.cs:9 -> src/Orders/Handlers.cs:10
+  - inprocess dispatches_to unresolved src/Orders/Api.cs:11 -> null
+  - inprocess dispatches_to candidate src/Orders/Api.cs:13 -> src/Orders/Handlers.cs:15
+  - inprocess dispatches_to ambiguous src/Orders/Api.cs:15 -> src/Orders/Handlers.cs:20
+  - inprocess dispatches_to ambiguous src/Orders/Api.cs:15 -> src/Orders/Handlers.cs:25
+  - inprocess dispatches_to unresolved src/Orders/Api.cs:17 -> null
+  - inprocess dispatches_to candidate src/Orders/Api.cs:19 -> src/Orders/Handlers.cs:5
+  - inprocess dispatches_to candidate src/Orders/Api.cs:19 -> src/Orders/Handlers.cs:10
+queries:
+  - query: trace Orders.Api.Place --to Orders.PlaceOrderHandler
+    exitCode: 0
+    lines:
+      - "(3 steps, weakest link: step 1, exact)"
+      - "2. link.dispatches_to exact"

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/query/v1/routes.schema.json",
+  "title": "query routes (alias endpoints): the observation record plus `at`",
+  "type": "array",
+  "items": {
+    "required": [
+      "id",
+      "kind",
+      "at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^obs:[0-9a-f]{32}$"
+      },
+      "kind": {
+        "enum": [
+          "ui.route",
+          "http.endpoint"
+        ]
+      },
+      "at": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^.+:[0-9]+$"
+      }
+    },
+    "type": "object",
+    "additionalProperties": true
+  }
+}

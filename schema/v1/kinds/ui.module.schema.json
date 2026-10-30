@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/ui.module.schema.json",
+  "title": "Observation ui.module (Angular NgModule)",
+  "type": "object",
+  "required": [
+    "kind",
+    "module",
+    "declarations",
+    "imports",
+    "exports",
+    "bootstrap"
+  ],
+  "properties": {
+    "kind": {
+      "const": "ui.module"
+    },
+    "module": {
+      "type": "string",
+      "pattern": "^ts:"
+    },
+    "declarations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ts:"
+      }
+    },
+    "imports": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ts:"
+      }
+    },
+    "exports": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ts:"
+      }
+    },
+    "bootstrap": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ts:"
+      }
+    }
+  },
+  "additionalProperties": true
+}

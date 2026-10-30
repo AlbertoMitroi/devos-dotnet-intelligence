@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/query/v1/refs.schema.json",
+  "title": "query refs: one row per relation (Angular) or per usage evidence (.NET)",
+  "type": "array",
+  "items": {
+    "required": [
+      "from_id",
+      "usage",
+      "path",
+      "line",
+      "text"
+    ],
+    "properties": {
+      "from_id": {
+        "type": "string"
+      },
+      "usage": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "path": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "line": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 1
+      },
+      "text": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "type": "object",
+    "additionalProperties": true
+  }
+}

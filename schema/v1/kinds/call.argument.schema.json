@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/call.argument.schema.json",
+  "title": "Observation call.argument (constant argument used as a destination, D20)",
+  "type": "object",
+  "required": [
+    "kind",
+    "caller",
+    "callee",
+    "parameter",
+    "ordinal",
+    "value",
+    "valueSource",
+    "role",
+    "basis",
+    "resolution"
+  ],
+  "properties": {
+    "kind": {
+      "const": "call.argument"
+    },
+    "caller": {
+      "type": "string",
+      "pattern": "^(dotnet|ts):"
+    },
+    "callee": {
+      "type": "string",
+      "pattern": "^(dotnet|ts):"
+    },
+    "parameter": {
+      "type": "string"
+    },
+    "ordinal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "value": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "valueSource": {
+      "enum": [
+        "literal",
+        "constant",
+        "nameof",
+        "unknown"
+      ]
+    },
+    "role": {
+      "type": "object",
+      "required": [
+        "kind",
+        "field"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "field": {
+          "type": "string"
+        }
+      }
+    },
+    "basis": {
+      "enum": [
+        "source",
+        "configured",
+        "generation"
+      ]
+    },
+    "resolution": {
+      "enum": [
+        "exact",
+        "ambiguous",
+        "candidate",
+        "unresolved"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

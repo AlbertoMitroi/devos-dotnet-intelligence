@@ -96,6 +96,7 @@ docker run --rm -v "$PWD/intelligence-out:/g:ro" ghcr.io/albertomitroi/dotnet-in
 
 - Text by default; `--json` prints canonical JSON rows (the shapes shared with angular-intelligence are listed in [CONTRACT.md](CONTRACT.md#indexsqlite)).
 - Exit codes: 0 results, 2 usage (also: no `index.sqlite`), 3 ambiguous name, 4 no results. In a partial generation an empty answer says so: absence of results is not proof of absence.
+- `analyze --input-generation <dir>` (repeatable, mount it read-only, for example under `/inputs`): the verified generation of a repository whose packages this one consumes. Its `destinationParameter` templates turn constant arguments at calls of those packages into `call.argument` observations (contract v1.2, C7, basis `generation`).
 - `index <generation> <file.sqlite>` builds the index of an older generation (written before the index existed) into a separate file; `query <file.sqlite> ...` reads it. The generation is not changed.
 
 ## Exit codes

@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/system/v1/system-link.schema.json",
+  "title": "System link (graph/links.ndjson records with scope: system; in addition to v1/link.schema.json)",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "via",
+    "scope",
+    "from",
+    "to",
+    "resolution",
+    "evidence"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^lnk:[0-9a-f]{32}$"
+    },
+    "scope": {
+      "const": "system"
+    },
+    "kind": {
+      "enum": [
+        "configured_route",
+        "consumes_contract",
+        "pushes_to",
+        "implemented_by_package",
+        "possible_communication",
+        "dispatches_to"
+      ]
+    },
+    "from": {
+      "type": "object",
+      "required": [
+        "input",
+        "observation",
+        "kind",
+        "project",
+        "entity"
+      ],
+      "properties": {
+        "input": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "observation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9-]*/obs:[0-9a-f]{32}$"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entity": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9-]*/(dotnet|ts):"
+        },
+        "through": {
+          "type": "object"
+        },
+        "alsoObservations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "to": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "input",
+        "observation",
+        "kind",
+        "project",
+        "entity"
+      ],
+      "properties": {
+        "input": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "observation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9-]*/obs:[0-9a-f]{32}$"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entity": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9-]*/(dotnet|ts):"
+        },
+        "through": {
+          "type": "object"
+        },
+        "alsoObservations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "match": {
+      "type": "object"
+    },
+    "resolution": {
+      "enum": [
+        "exact",
+        "ambiguous",
+        "candidate",
+        "unresolved"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "versionMatch": {
+      "enum": [
+        "exact",
+        "different",
+        "unknown"
+      ]
+    },
+    "package": {
+      "type": "object"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*/ev:[0-9a-f]{32}$"
+      }
+    }
+  },
+  "additionalProperties": true
+}

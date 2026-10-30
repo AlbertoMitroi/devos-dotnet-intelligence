@@ -41,7 +41,10 @@ public static class ProjectEvaluator
             {
                 try
                 {
-                    using var json = JsonDocument.Parse(result.StandardOutput);
+                    // SDK 8 can print notices ("An issue was encountered verifying workloads...") on stdout before the JSON.
+                    var text = result.StandardOutputText;
+                    var start = text.StartsWith('{') ? 0 : text.IndexOf("\n{", StringComparison.Ordinal) + 1;
+                    using var json = JsonDocument.Parse(start > 0 || text.StartsWith('{') ? text[start..] : text);
                     var properties = json.RootElement.GetProperty("Properties");
                     assets = properties.GetProperty("ProjectAssetsFile").GetString();
                     var list = properties.GetProperty("TargetFrameworks").GetString();

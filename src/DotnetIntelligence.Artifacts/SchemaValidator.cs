@@ -23,6 +23,17 @@ public sealed class SchemaValidator
         return validator;
     }
 
+    /// <summary>Every *.schema.json of a directory (for example the vendored schema/query/v1), by file name without ".schema.json".</summary>
+    public static SchemaValidator FromDirectory(string directory)
+    {
+        var validator = new SchemaValidator();
+        foreach (var file in Directory.EnumerateFiles(directory, "*.schema.json"))
+        {
+            validator._schemas[Path.GetFileName(file).Replace(".schema.json", string.Empty, StringComparison.Ordinal)] = JsonNode.Parse(File.ReadAllText(file))!.AsObject();
+        }
+        return validator;
+    }
+
     public IReadOnlyCollection<string> Names => _schemas.Keys;
 
     public IEnumerable<string> Validate(string schemaName, JsonNode? value) =>

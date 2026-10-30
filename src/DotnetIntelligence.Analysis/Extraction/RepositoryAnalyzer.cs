@@ -86,6 +86,21 @@ public static class RepositoryAnalyzer
         stopwatch.Restart();
         stageStart("restore");
         var evaluations = await ProjectEvaluator.EvaluateAsync(root, targets.SelectMany(t => t.Projects), toolEnvironment, scrubber, cancellationToken).ConfigureAwait(false);
+        // Contract v1.1 package identity: a project whose evaluation failed, or a packable project without an evaluated
+        // PackageId or Version, is reported; the record keeps null rather than a guess.
+        foreach (var evaluation in evaluations.Values.OrderBy(e => e.ProjectPath, StringComparer.Ordinal))
+        {
+            if (evaluation.Error is not null)
+            {
+                diagnostics.Add(new AnalysisDiagnostic(DiagnosticSeverity.Warning, "project-evaluation-failed", evaluation.ProjectPath, DiagnosticState.Unknown,
+                    $"MSBuild evaluation of the project failed, so its package identity (PackageId, Version, IsPackable) is unknown: {evaluation.Error}"));
+            }
+            else if (evaluation.IsPackable == true && (evaluation.PackageId is null || evaluation.PackageVersion is null))
+            {
+                diagnostics.Add(new AnalysisDiagnostic(DiagnosticSeverity.Warning, "package-identity-not-evaluated", evaluation.ProjectPath, DiagnosticState.Unknown,
+                    $"The project is packable but MSBuild evaluated no {(evaluation.PackageId is null ? "PackageId" : "Version")}."));
+            }
+        }
         var (restores, restoreDiagnostics) = await RestoreRunner.RunAsync(root, targets, evaluations, toolEnvironment, scrubber, cancellationToken).ConfigureAwait(false);
         diagnostics.AddRange(restoreDiagnostics);
         var assets = new Dictionary<string, AssetsFile>(StringComparer.Ordinal);

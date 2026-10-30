@@ -16,15 +16,14 @@ public class IndexAndQueryTests
     }
 
     [Fact]
-    public void Documented_index_schema_matches_the_writer()
+    public void Index_schema_matches_the_vendored_contract()
     {
-        var contract = File.ReadAllText(Path.Combine(RepositoryRoot.Path, "docs", "CONTRACT.md"));
-        var block = Regex.Match(contract, "<!-- index-schema:begin -->\\s*```sql\\n(?<ddl>.*?)```\\s*<!-- index-schema:end -->", RegexOptions.Singleline);
-        Assert.True(block.Success, "docs/CONTRACT.md has no index-schema block");
-        var documented = block.Groups["ddl"].Value.Split(";\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(s => s.TrimEnd(';')).Where(s => s.Length > 0).ToList();
-        Assert.Equal(IndexWriter.Schema, documented);
-        Assert.Contains($"Index schema {IndexWriter.SchemaVersion}", contract, StringComparison.Ordinal);
+        var sql = File.ReadAllText(Path.Combine(RepositoryRoot.Path, "schema", "index", "v1", "index.sql"));
+        var sections = sql[sql.IndexOf("-- base", StringComparison.Ordinal)..sql.IndexOf("-- system", StringComparison.Ordinal)];
+        var contract = sections.Split('\n').Select(l => l.Trim()).Where(l => l.StartsWith("create", StringComparison.Ordinal))
+            .Select(l => Regex.Replace(l.TrimEnd(';'), "\\s+", " ")).ToList();
+        Assert.Equal(contract, IndexWriter.Schema.Select(s => Regex.Replace(s, "\\s+", " ")));
+        Assert.Contains("index schema 1", sql, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -178,13 +177,13 @@ public class IndexAndQueryTests
     {
         using var complete = new SyntheticGeneration();
         complete.BuildIndex();
-        var none = Run(complete, "messages");
+        var none = Run(complete, "callers", "A.Client.Get");
         Assert.Equal(QueryEngine.NoResults, none.Code);
-        Assert.Equal("no messages", none.Text);
+        Assert.Equal($"no callers of {SyntheticGeneration.Get}", none.Text);
 
         using var partial = new SyntheticGeneration(status: "partial");
         partial.BuildIndex();
-        var note = Run(partial, "messages");
+        var note = Run(partial, "callers", "A.Client.Get");
         Assert.Equal(QueryEngine.NoResults, note.Code);
         Assert.Contains("the generation is partial (2 projects: 1 syntax only, 1 diagnostics failed, partial or unsupported)", note.Text, StringComparison.Ordinal);
     }
@@ -214,6 +213,36 @@ public class IndexAndQueryTests
             command.ExecuteNonQuery();
         }
         Assert.Contains(GenerationVerifier.VerifyRecords(generation.Root, null, "sha1"), e => e == "index.sqlite: table links has 0 rows, the graph has 1 records");
+    }
+
+    /// <summary>The JSON rows of every verb match the vendored contract schemas (schema/query/v1), and every verb with data returns rows.</summary>
+    [Theory]
+    [InlineData("symbol", "symbol", new[] { "A.Client.Get" })]
+    [InlineData("ambiguous", "symbol", new[] { "Handle" })]
+    [InlineData("refs", "refs", new[] { "B.Api" })]
+    [InlineData("callers", "callers", new[] { SyntheticGeneration.Handle })]
+    [InlineData("callers", "callees", new[] { "A.Client.Get" })]
+    [InlineData("impl", "impl", new[] { SyntheticGeneration.HandleAll })]
+    [InlineData("di", "di", new[] { "B.Api" })]
+    [InlineData("routes", "routes", new string[0])]
+    [InlineData("routes", "endpoints", new string[0])]
+    [InlineData("http", "http", new string[0])]
+    [InlineData("calls-to", "calls-to", new[] { "/api/items" })]
+    [InlineData("messages", "messages", new string[0])]
+    [InlineData("search", "search", new[] { "items" })]
+    [InlineData("trace", "trace", new[] { "A.Client.Get" })]
+    public void Json_rows_match_the_contract_query_schemas(string schema, string command, string[] args)
+    {
+        using var generation = new SyntheticGeneration();
+        generation.BuildIndex();
+        var result = Run(generation, command, args);
+        Assert.True(result.Code is QueryEngine.Results or QueryEngine.Ambiguous, $"{command}: exit {result.Code} {result.Text}");
+        var json = result.Json!;
+        Assert.True(json is JsonObject || json.AsArray().Count > 0, $"{command} returned no rows");
+        var validator = SchemaValidator.FromDirectory(Path.Combine(RepositoryRoot.Path, "schema", "query", "v1"));
+        // Rows go through canonical JSON first, as --json prints them.
+        var printed = JsonNode.Parse(DotnetIntelligence.Contracts.CanonicalJson.Serialize(json));
+        Assert.Empty(validator.Validate(schema, printed));
     }
 
     private static QueryResult Run(SyntheticGeneration generation, string command, params string[] args)

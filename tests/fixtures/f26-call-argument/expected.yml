@@ -1,0 +1,64 @@
+# Fixture 26: constant call-site arguments used as destinations (contract v1.2, C7, basis source). The SignalR send
+# inside HubUtility.SendToAll takes its client method name from the parameter "method": the realtime.send keeps
+# method null and names the parameter (destinationParameter). Each call of IHubUtility.SendToAll (the interface member
+# that HubUtility.SendToAll implements) gives a call.argument: a constant field, a literal and nameof are exact; a
+# parameter is unknown; a value the secret check flags is not stored.
+exitCode: 0
+status: complete
+loadModes:
+  src/Hubs/Hubs.csproj: semantic
+observations:
+  kinds: [realtime.send, call.argument]
+  items:
+    - kind: realtime.send
+      hub: src/Hubs/Hubs.csproj|T:Hubs.FlowHub
+      method: null
+      audience: all
+      sender: src/Hubs/Hubs.csproj|M:Hubs.HubUtility.SendToAll(System.String,System.Object)
+      resolution: unresolved
+      destinationParameter:
+        field: method
+        parameter: method
+        ordinal: "0"
+      siteAt: src/Hubs/HubUtility.cs:16
+    - kind: call.argument
+      caller: src/Hubs/Hubs.csproj|M:Hubs.Projection.Constant
+      callee: src/Hubs/Hubs.csproj|M:Hubs.IHubUtility.SendToAll(System.String,System.Object)
+      parameter: method
+      ordinal: "0"
+      value: flowUpdated
+      valueSource: constant
+      role:
+        kind: realtime.send
+        field: method
+      basis: source
+      resolution: exact
+      siteAt: src/Hubs/Projection.cs:7
+    - kind: call.argument
+      caller: src/Hubs/Hubs.csproj|M:Hubs.Projection.Literal
+      value: quoteChanged
+      valueSource: literal
+      resolution: exact
+      siteAt: src/Hubs/Projection.cs:9
+    - kind: call.argument
+      caller: src/Hubs/Hubs.csproj|M:Hubs.Projection.NameOf
+      value: Projection
+      valueSource: nameof
+      resolution: exact
+      siteAt: src/Hubs/Projection.cs:11
+    - kind: call.argument
+      caller: src/Hubs/Hubs.csproj|M:Hubs.Projection.Dynamic(System.String)
+      value: null
+      valueSource: unknown
+      resolution: unresolved
+      reason: The argument is not a compile-time constant string.
+      siteAt: src/Hubs/Projection.cs:13
+    - kind: call.argument
+      caller: src/Hubs/Hubs.csproj|M:Hubs.Projection.Secret
+      value: null
+      valueSource: literal
+      resolution: unresolved
+      reason: secret
+      siteAt: src/Hubs/Projection.cs:15
+secretsAbsent: [hunter2]
+links: []

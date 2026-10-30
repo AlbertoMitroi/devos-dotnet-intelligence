@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/query/v1/ambiguous.schema.json",
+  "title": "Exit code 3 (ambiguous name): the candidate entities, none picked",
+  "type": "array",
+  "items": {
+    "required": [
+      "id",
+      "kind",
+      "name",
+      "signature"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^(dotnet|ts):"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "signature": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "type": "object",
+    "additionalProperties": true
+  }
+}

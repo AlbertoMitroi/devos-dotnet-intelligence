@@ -5,6 +5,9 @@
   <ItemGroup>
     <!-- The contract travels with the engine, so verify works on any machine. -->
     <EmbeddedResource Include="../../schema/v1/*.schema.json" LogicalName="schema/v1/%(Filename)%(Extension)" />
+    <!-- v1.2: an observation whose kind has a file here is also validated against it. -->
+    <EmbeddedResource Include="../../schema/v1/kinds/*.schema.json" LogicalName="schema/v1/kinds/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../schema/index/v1/index.sql" LogicalName="schema/index/v1/index.sql" />
   </ItemGroup>
   <ItemGroup>
     <!-- index.sqlite (5.2); the bundled e_sqlite3 includes FTS5. -->

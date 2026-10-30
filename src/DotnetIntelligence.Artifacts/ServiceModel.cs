@@ -50,7 +50,7 @@ public sealed class ServiceModel
     /// <summary>"path:line" of a record: an observation's site, otherwise its first evidence (see <see cref="Locations"/>).</summary>
     public string At(JsonObject record)
     {
-        _locations ??= new Locations(Evidence, DeclarationsByEntity);
+        _locations ??= new Locations(Evidence);
         return Locations.Format(((string?)record["id"])?.StartsWith("obs:", StringComparison.Ordinal) == true ? _locations.SiteOf(record) : _locations.FirstOf(record));
     }
 
@@ -162,7 +162,8 @@ public sealed class ServiceModel
     /// <summary>Entity ids reduced to their documentation id ("T:A.B"); other values unchanged.</summary>
     public static string Short(string? id) => id is null ? "unknown" : IndexWriter.ShortId(id);
 
-    public static string ProjectName(string path) => Path.GetFileNameWithoutExtension(path);
+    /// <summary>The project file name without extension; "repository" for the repository scope (project ".").</summary>
+    public static string ProjectName(string path) => path == "." ? "repository" : Path.GetFileNameWithoutExtension(path);
 
     public static string Slug(string name)
     {

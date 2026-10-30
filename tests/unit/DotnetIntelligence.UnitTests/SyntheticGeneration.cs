@@ -65,6 +65,7 @@ internal sealed class SyntheticGeneration : IDisposable
             Relation("rel:01", "calls_declared_target", Get, Handle, "ctx:a", ["ev:01", "ev:02"]),
             Relation("rel:02", "references", Get, Api, "ctx:a", ["ev:02", "ev:01"], usage: "read"),
             Relation("rel:03", "contains", Client, Get, "ctx:a", ["ev:01"]),
+            Relation("rel:04", "overrides", Handle, HandleAll, "ctx:b", ["ev:05"]),
         };
         var observations = new List<JsonObject>
         {
@@ -72,16 +73,26 @@ internal sealed class SyntheticGeneration : IDisposable
             {
                 ["id"] = "obs:01", ["kind"] = "http.call", ["project"] = A, ["context"] = "ctx:a", ["method"] = "GET",
                 ["canonicalRoute"] = "/api/items/{}", ["urlTemplate"] = "api/items/{}", ["caller"] = Get, ["client"] = null,
-                ["resolution"] = "exact", ["evidence"] = Ids("ev:03", "ev:04"),
+                ["resolution"] = "exact", ["evidence"] = Ids("ev:03", "ev:04"), ["site"] = "ev:03",
             },
         };
+        observations.Add(new JsonObject
+        {
+            ["id"] = "obs:d01", ["kind"] = "di.registers", ["project"] = B, ["context"] = "ctx:b", ["service"] = Api, ["implementation"] = Api,
+            ["lifetime"] = "scoped", ["conditional"] = false, ["evidence"] = Ids("ev:06"), ["site"] = "ev:06",
+        });
+        observations.Add(new JsonObject
+        {
+            ["id"] = "obs:m01", ["kind"] = "messaging.publish", ["project"] = A, ["context"] = "ctx:a", ["publisher"] = Get, ["resolution"] = "exact",
+            ["contract"] = new JsonObject { ["identity"] = "name:OrderPlaced", ["name"] = "OrderPlaced" }, ["evidence"] = Ids("ev:01"), ["site"] = "ev:01",
+        });
         for (var i = 0; i < endpointCount; i++)
         {
             observations.Add(new JsonObject
             {
                 ["id"] = $"obs:e{i:D3}", ["kind"] = "http.endpoint", ["project"] = B, ["context"] = "ctx:b", ["method"] = "GET",
                 ["canonicalRoute"] = i == 0 ? "/api/items/{}" : $"/api/other{i:D3}", ["routeTemplate"] = "{id}", ["handler"] = i == 0 ? Handle : null,
-                ["resolution"] = "exact", ["evidence"] = Ids("ev:06", "ev:07"),
+                ["resolution"] = "exact", ["evidence"] = Ids("ev:06", "ev:07"), ["site"] = "ev:07",
             });
         }
         var links = new List<JsonObject>
@@ -150,8 +161,18 @@ internal sealed class SyntheticGeneration : IDisposable
         var path = Path.Combine(Root, file);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         using var stream = File.Create(path);
-        CanonicalJson.WriteNdjson(stream, records.OrderBy(r => (string)r["id"]!, StringComparer.Ordinal));
+        CanonicalJson.WriteNdjson(stream, records.Select(r => (JsonObject)ContractIds(r)!).OrderBy(r => (string)r["id"]!, StringComparer.Ordinal));
     }
+
+    /// <summary>Short record ids ("obs:01") become contract-shaped ids ("obs:" and 32 hex), the same everywhere they occur.</summary>
+    private static JsonNode? ContractIds(JsonNode? node) => node switch
+    {
+        JsonObject obj => new JsonObject(obj.Select(p => KeyValuePair.Create(p.Key, ContractIds(p.Value)))),
+        JsonArray array => new JsonArray(array.Select(ContractIds).ToArray()),
+        JsonValue value when value.TryGetValue<string>(out var text) && System.Text.RegularExpressions.Regex.IsMatch(text, "^(ev|obs|lnk|ctx|prj|snip|rel|decl|diag):[0-9a-z]{1,8}$")
+            => JsonValue.Create(text[..(text.IndexOf(':') + 1)] + Hashing.Sha256Hex(text)[..32]),
+        _ => node?.DeepClone(),
+    };
 
     private static JsonArray Ids(params string[] ids) => new(ids.Select(i => (JsonNode)i).ToArray());
 

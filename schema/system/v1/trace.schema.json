@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/system/v1/trace.schema.json",
+  "title": "Trace (graph/traces.ndjson)",
+  "type": "object",
+  "required": [
+    "id",
+    "recordType",
+    "start",
+    "end",
+    "inputs",
+    "links",
+    "segments",
+    "resolution",
+    "weakest"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^trc:[0-9a-f]{32}$"
+    },
+    "recordType": {
+      "const": "trace"
+    },
+    "start": {
+      "type": "string"
+    },
+    "end": {
+      "type": "string"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      }
+    },
+    "links": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string",
+        "pattern": "^lnk:[0-9a-f]{32}$"
+      }
+    },
+    "segments": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "kind",
+          "resolution",
+          "evidence"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "link",
+              "inside"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "resolution": {
+            "enum": [
+              "exact",
+              "ambiguous",
+              "candidate",
+              "unresolved"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "resolution": {
+      "enum": [
+        "exact",
+        "ambiguous",
+        "candidate",
+        "unresolved"
+      ]
+    },
+    "weakest": {
+      "type": "object",
+      "required": [
+        "segment",
+        "resolution"
+      ],
+      "properties": {
+        "segment": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resolution": {
+          "enum": [
+            "exact",
+            "ambiguous",
+            "candidate",
+            "unresolved"
+          ]
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -18,7 +18,10 @@ public static class IndexWriter
     /// <summary>Version of the index schema, stored in meta.indexSchema; bumped when a table or column changes.</summary>
     public const string SchemaVersion = "1";
 
-    /// <summary>The DDL, statement by statement, in creation order. docs/CONTRACT.md documents exactly these statements.</summary>
+    /// <summary>
+    /// The DDL in creation order: the "base" and "evidence" sections of the contract's schema/index/v1/index.sql
+    /// (index schema 1, normative since contract v1.2), statement for statement.
+    /// </summary>
     public static readonly IReadOnlyList<string> Schema =
     [
         "create table meta(key text primary key, value text not null)",
@@ -30,10 +33,6 @@ public static class IndexWriter
         "create table links(id text primary key, kind text, via text, from_obs text, to_obs text, resolution text, reason text)",
         "create table diagnostics(id text primary key, severity text, code text, scope text, state text, message text)",
         "create table projects(id text primary key, record_type text, path text, json text)",
-        "create table relation_evidence(relation text, evidence text, primary key (relation, evidence))",
-        "create table observation_evidence(observation text, evidence text, primary key (observation, evidence))",
-        "create table link_evidence(link text, evidence text, primary key (link, evidence))",
-        "create table evidence_snippet(evidence text primary key, snippet text)",
         "create index relations_from on relations(from_id, kind)",
         "create index relations_to on relations(to_id, kind)",
         "create index declarations_entity on declarations(entity)",
@@ -42,11 +41,15 @@ public static class IndexWriter
         "create index observations_kind on observations(kind)",
         "create index links_from on links(from_obs)",
         "create index links_to on links(to_obs)",
+        "create virtual table search using fts5(ref unindexed, kind unindexed, text)",
+        "create table relation_evidence(relation text, evidence text, primary key (relation, evidence))",
+        "create table observation_evidence(observation text, evidence text, primary key (observation, evidence))",
+        "create table link_evidence(link text, evidence text, primary key (link, evidence))",
+        "create table evidence_snippet(evidence text primary key, snippet text)",
         "create index evidence_location on evidence(path, line)",
         "create index relation_evidence_evidence on relation_evidence(evidence)",
         "create index observation_evidence_evidence on observation_evidence(evidence)",
         "create index evidence_snippet_snippet on evidence_snippet(snippet)",
-        "create virtual table search using fts5(ref unindexed, kind unindexed, text)",
     ];
 
     /// <summary>SQLite version and FTS5 support of the bundled library (checked at startup, printed by version --json).</summary>
@@ -85,7 +88,7 @@ public static class IndexWriter
         var snippets = Read(root, "snippets.ndjson");
 
         var evidenceById = evidence.ToDictionary(e => (string)e["id"]!, StringComparer.Ordinal);
-        var locations = new Locations(evidenceById, declarations.GroupBy(d => (string)d["entity"]!, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal));
+        var locations = new Locations(evidenceById);
         var snippetText = snippets.ToDictionary(s => (string)s["id"]!, s => (string?)s["text"], StringComparer.Ordinal);
 
         using var connection = Open(indexPath, readOnly: false);

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/query/v1/calls-to.schema.json",
+  "title": "query calls-to (optional, .NET)",
+  "type": "array",
+  "items": {
+    "required": [
+      "link",
+      "kind",
+      "resolution",
+      "from",
+      "to"
+    ],
+    "properties": {
+      "link": {
+        "type": "string",
+        "pattern": "^lnk:[0-9a-f]{32}$"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "resolution": {
+        "enum": [
+          "exact",
+          "ambiguous",
+          "candidate",
+          "unresolved"
+        ]
+      },
+      "from": {
+        "type": "object"
+      },
+      "to": {
+        "type": [
+          "object",
+          "null"
+        ]
+      }
+    },
+    "type": "object",
+    "additionalProperties": true
+  }
+}

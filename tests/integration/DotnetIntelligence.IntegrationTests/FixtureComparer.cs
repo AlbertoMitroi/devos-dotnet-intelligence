@@ -112,7 +112,7 @@ internal static partial class FixtureComparer
             var remaining = observations.Where(o => kinds.Contains((string)o["kind"]!)).ToList();
             foreach (var item in expectedObservations["items"]!.AsArray().Select(i => i!.AsObject()))
             {
-                var match = remaining.FirstOrDefault(o => Matches(item, o, Lines(o).ToList()));
+                var match = remaining.FirstOrDefault(o => Matches(item, o, Lines(o).ToList(), (string?)o["site"] is { } site ? At(site) : null));
                 if (match is null)
                 {
                     failures.Add($"missing observation {item.ToJsonString()}");
@@ -136,7 +136,7 @@ internal static partial class FixtureComparer
             CompareSets(failures, "links", expectedLinks.Select(l => (string)l!), actual);
         }
 
-        // G4.1: every link keeps the evidence of both sides (5.1).
+        // G4.1: every link keeps the evidence of both sides (5.1): each side's site (contract v1.2), else all its evidence.
         var observationsById = observations.ToDictionary(o => (string)o["id"]!, StringComparer.Ordinal);
         foreach (var link in Read(output, "graph/links.ndjson"))
         {
@@ -147,7 +147,8 @@ internal static partial class FixtureComparer
                 {
                     continue;
                 }
-                var missing = observation["evidence"]!.AsArray().Select(e => (string)e!).Where(e => !linkEvidence.Contains(e)).ToList();
+                var required = (string?)observation["site"] is { } site ? [site] : observation["evidence"]!.AsArray().Select(e => (string)e!).ToList();
+                var missing = required.Where(e => !linkEvidence.Contains(e)).ToList();
                 if (missing.Count > 0)
                 {
                     failures.Add($"link {link["id"]} lacks {missing.Count} evidence of its {(side == link["from"] ? "from" : "to")} side");
@@ -184,10 +185,19 @@ internal static partial class FixtureComparer
         return $"{match.Groups["kind"].Value} {Id(match.Groups["from"].Value)} -> {Id(match.Groups["to"].Value)}{usage}{lines}";
     }
 
-    private static bool Matches(JsonObject expected, JsonObject actual, List<string> lines)
+    /// <param name="siteLine">"path:line" of the observation's site (contract v1.2); "siteAt" in expected.yml compares with it.</param>
+    private static bool Matches(JsonObject expected, JsonObject actual, List<string> lines, string? siteLine = null)
     {
         foreach (var (key, value) in expected)
         {
+            if (key == "siteAt")
+            {
+                if ((string?)value != siteLine)
+                {
+                    return false;
+                }
+                continue;
+            }
             if (key == "at")
             {
                 if (!lines.Contains((string)value!))
@@ -203,6 +213,15 @@ internal static partial class FixtureComparer
             if (value is JsonObject nested)
             {
                 if (actualValue is not JsonObject actualNested || !Matches(nested, actualNested, lines))
+                {
+                    return false;
+                }
+                continue;
+            }
+            if (value is JsonArray expectedArray)
+            {
+                if (actualValue is not JsonArray actualArray || expectedArray.Count != actualArray.Count
+                    || expectedArray.Zip(actualArray).Any(p => Id((string)p.First!) != (string?)p.Second))
                 {
                     return false;
                 }

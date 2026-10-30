@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/system/v1/package-resolution.schema.json",
+  "title": "Package resolution (graph/packages.ndjson)",
+  "type": "object",
+  "required": [
+    "id",
+    "recordType",
+    "ecosystem",
+    "packageId",
+    "version",
+    "consumer",
+    "producer",
+    "resolution",
+    "versionMatch",
+    "entities"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^pkr:[0-9a-f]{32}$"
+    },
+    "recordType": {
+      "const": "packageResolution"
+    },
+    "ecosystem": {
+      "enum": [
+        "nuget",
+        "npm"
+      ]
+    },
+    "packageId": {
+      "type": "string"
+    },
+    "version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "consumer": {
+      "type": "object",
+      "required": [
+        "input",
+        "projects"
+      ],
+      "properties": {
+        "input": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "required": [
+        "input",
+        "project",
+        "method",
+        "packageId",
+        "packageVersion",
+        "repository",
+        "commit",
+        "tag"
+      ],
+      "properties": {
+        "input": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "method": {
+          "enum": [
+            "packageId",
+            "assemblyName",
+            "npmName"
+          ]
+        },
+        "tag": {
+          "type": "null"
+        }
+      }
+    },
+    "resolution": {
+      "enum": [
+        "exact",
+        "ambiguous",
+        "candidate",
+        "unresolved"
+      ]
+    },
+    "versionMatch": {
+      "enum": [
+        "exact",
+        "different",
+        "unknown"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "entities": {
+      "type": "object",
+      "required": [
+        "used",
+        "resolved",
+        "missing"
+      ]
+    }
+  },
+  "additionalProperties": true
+}
