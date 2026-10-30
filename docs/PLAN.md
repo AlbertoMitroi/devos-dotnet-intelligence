@@ -1,6 +1,6 @@
 # dotnet-intelligence: implementation plan (Step 0)
 
-Status: **Step 0, waiting for review.** Nothing from Step 1 onward exists yet.
+Status: Steps 1 to 4 implemented (see the traceability results and `docs/reports/`); Step 5 pending.
 Source of requirements: [`IMPLEMENTATION-PROMPT.md`](IMPLEMENTATION-PROMPT.md) (section numbers below refer to it).
 Decisions: [`DECISIONS.md`](DECISIONS.md). Open questions: [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).
 
@@ -192,27 +192,27 @@ Columns: requirement id, prompt section, planned code, planned test or recorded 
 
 | Id | Requirement | Section | Planned code | Planned test / check | Result |
 |---|---|---|---|---|---|
-| R4.1 | Link rules for HTTP, gRPC, messaging, DI; evidence of both sides plus configuration or topology | 5.1 | `Artifacts/Linker` | fixtures 6 to 10 `expected.yml` | pending |
-| R4.2 | Ambiguous keeps all matches; unresolved has a reason; weakest link | 5.1 | `Linker`, `QueryEngine.Trace` | `LinkerTests` | pending |
-| R4.3 | `index.sqlite` with Microsoft.Data.Sqlite; FTS5 checked at startup | 5.2 | `Artifacts/IndexWriter` | `Fts5StartupTest` | pending |
-| R4.4 | Tables mirror records; indexes in both directions | 5.2 | `IndexWriter` | `IndexSchemaTests` (`EXPLAIN QUERY PLAN` uses the indexes) | pending |
-| R4.5 | FTS5 over names, signatures, doc comments, snippets | 5.2 | `IndexWriter` | `SearchTests` | pending |
-| R4.6 | Index schema in CONTRACT.md, versioned | 5.2 | docs | doc test compares documented and actual DDL | pending |
-| R4.7 | Canonical index dump identical across runs and architectures | 5.2 | `Artifacts/IndexDump` | `DeterminismTests` + CI | pending |
-| R4.8 | Repository overview pack | 5.3 | `Artifacts/ContextPackWriter` | golden files per fixture | pending |
-| R4.9 | Service cards | 5.3 | `ContextPackWriter` | golden files | pending |
-| R4.10 | Contract cards | 5.3 | `ContextPackWriter` | golden files | pending |
-| R4.11 | Evidence on every statement; "what could not be determined"; truncation notice with count and how to get the rest | 5.3 | `ContextPackWriter` | `CardRulesTests` | pending |
-| R4.12 | Wiki: index, service and contract pages, Mermaid, legend, commit, engine version, queries | 5.4 | `Artifacts/WikiWriter` | golden files + Mermaid syntax check in a container | pending |
-| R4.13 | `verify`: checksums, schema, integrity; exit 0 or 50 | 5.5 | `Cli/VerifyCommand` | tampered copy test | pending |
-| R4.14 | `query` commands: `symbol`, `refs`, `callers`, `callees`, `impl`, `di`, `endpoints`, `calls-to`, `messages`, `trace`, `search` | 5.5 | `Artifacts/QueryEngine`, `Cli/QueryCommand` | one test per command on fixtures | pending |
-| R4.15 | Text by default, `--json`; distinct no results, not analysed, partial, unsupported; exit 3 for ambiguous `symbol` | 5.5 | `QueryCommand` | `QueryStateTests` | pending |
-| R4.16 | Finalization order: validate, checksums, manifest, `run.json`; Action outputs from the manifest | 5.6 | `Artifacts/GenerationFinalizer`, `GitHubActionMode` | `FinalizerOrderTests` (file write order observed) | pending |
-| G4.1 | Links on fixtures 7 to 10 match `expected.yml` with evidence on both sides | Gate 4 | | R4.1 | pending |
-| G4.2 | Context packs and wiki byte-identical across runs and architectures; index dump identical | Gate 4 | | R4.7, CI | pending |
-| G4.3 | `verify` passes on every fixture generation, fails on a tampered copy | Gate 4 | | R4.13 | pending |
-| G4.4 | `query` answers fixture questions; exit 3 with candidates for an ambiguous name | Gate 4 | | R4.14, R4.15 | pending |
-| G4.5 | `docs/reports/step-4-artifacts.md` | Gate 4 | | | pending |
+| R4.1 | Link rules for HTTP, gRPC, messaging, DI; evidence of both sides plus configuration or topology | 5.1 | `Artifacts/Linker` | fixtures 6 to 10 `expected.yml` | pass: fixtures 6 to 10 links match expected.yml (FixtureTests); every link carries the evidence of both sides (FixtureComparer check on all 24 fixtures) |
+| R4.2 | Ambiguous keeps all matches; unresolved has a reason; weakest link | 5.1 | `Linker`, `QueryEngine.Trace` | `LinkerTests` | pass: ArtifactRuleTests (ambiguous keeps all targets, unresolved with reason, weakest part, fan-out D18); `trace` reports the weakest link |
+| R4.3 | `index.sqlite` with Microsoft.Data.Sqlite; FTS5 checked at startup | 5.2 | `Artifacts/IndexWriter` | `Fts5StartupTest` | pass: Microsoft.Data.Sqlite 10.0.14, SQLite 3.53.3 with FTS5; checked before analyze starts and in `version --json` (Bundled_sqlite_supports_fts5) |
+| R4.4 | Tables mirror records; indexes in both directions | 5.2 | `IndexWriter` | `IndexSchemaTests` (`EXPLAIN QUERY PLAN` uses the indexes) | pass: Lookups_in_both_directions_use_an_index (EXPLAIN QUERY PLAN for 9 lookups) |
+| R4.5 | FTS5 over names, signatures, doc comments, snippets | 5.2 | `IndexWriter` | `SearchTests` | pass: Search_finds_names_snippets_and_observations_with_locations; no documentation comments in the records, so none are indexed |
+| R4.6 | Index schema in CONTRACT.md, versioned | 5.2 | docs | doc test compares documented and actual DDL | pass: docs/CONTRACT.md `index.sqlite`, index schema 1; Documented_index_schema_matches_the_writer |
+| R4.7 | Canonical index dump identical across runs and architectures | 5.2 | `Artifacts/IndexDump` | `DeterminismTests` + CI | pass: dump and file identical across runs (unit test, verify.sh, eShopOnAbp twice); amd64 vs arm64 in CI (see report) |
+| R4.8 | Repository overview pack | 5.3 | `Artifacts/ContextPackWriter` | golden files per fixture | pass: context/overview.md with services, service map, contracts, gaps (ArtifactRuleTests; eShopOnAbp, lab-leasing) |
+| R4.9 | Service cards | 5.3 | `ContextPackWriter` | golden files | pass: context/projects/*.md service cards (endpoints, outgoing calls, messages, dispatch, DI, data, configuration keys, packages, gaps) |
+| R4.10 | Contract cards | 5.3 | `ContextPackWriter` | golden files | pass: context/contracts/*.md per message contract and gRPC service |
+| R4.11 | Evidence on every statement; "what could not be determined"; truncation notice with count and how to get the rest | 5.3 | `ContextPackWriter` | `CardRulesTests` | pass: Cards_cite_evidence_end_with_gaps_and_say_what_was_cut |
+| R4.12 | Wiki: index, service and contract pages, Mermaid, legend, commit, engine version, queries | 5.4 | `Artifacts/WikiWriter` | golden files + Mermaid syntax check in a container | pass: wiki/ index, services, contracts with Mermaid and legend (Wiki_pages_record_commit_engine_queries_and_draw_resolution); 59 diagrams rendered by mermaid-cli 11.4.2 in a container (report) |
+| R4.13 | `verify`: checksums, schema, integrity; exit 0 or 50 | 5.5 | `Cli/VerifyCommand` | tampered copy test | pass: verify on every fixture generation (FixtureTests), exit 50 on a tampered copy (verify.sh, verify.ps1); verify also checks index.sqlite against the graph |
+| R4.14 | `query` commands: `symbol`, `refs`, `callers`, `callees`, `impl`, `di`, `endpoints`, `calls-to`, `messages`, `trace`, `search` | 5.5 | `Artifacts/QueryEngine`, `Cli/QueryCommand` | one test per command on fixtures | pass with changes: symbol, refs, callers, callees, impl, di, routes (alias endpoints), http, calls-to, messages, trace, search, dump; verbs and JSON rows shared with angular-intelligence (D25); fixture questions in expected.yml |
+| R4.15 | Text by default, `--json`; distinct no results, not analysed, partial, unsupported; exit 3 for ambiguous `symbol` | 5.5 | `QueryCommand` | `QueryStateTests` | pass: text default, --json; exit 3 for ambiguous names, 4 no results with a coverage note in partial generations (IndexAndQueryTests) |
+| R4.16 | Finalization order: validate, checksums, manifest, `run.json`; Action outputs from the manifest | 5.6 | `Artifacts/GenerationFinalizer`, `GitHubActionMode` | `FinalizerOrderTests` (file write order observed) | pass: index, packs and wiki derived from the written NDJSON, then validation, manifest, run.json (Run_json_is_written_after_the_manifest_and_nothing_after_it); Action outputs read from manifest.json |
+| G4.1 | Links on fixtures 7 to 10 match `expected.yml` with evidence on both sides | Gate 4 | | R4.1 | pass: f06 to f10 links and evidence of both sides (FixtureTests) |
+| G4.2 | Context packs and wiki byte-identical across runs and architectures; index dump identical | Gate 4 | | R4.7, CI | see report: two runs identical locally; CI byte comparison amd64 vs arm64 includes index.sqlite, context, wiki and the index dumps |
+| G4.3 | `verify` passes on every fixture generation, fails on a tampered copy | Gate 4 | | R4.13 | pass: FixtureTests (verify per fixture), verify.sh tampered copy |
+| G4.4 | `query` answers fixture questions; exit 3 with candidates for an ambiguous name | Gate 4 | | R4.14, R4.15 | pass: queries in expected.yml of f02, f03, f05 to f10; f02 and f03 exit 3 with candidates |
+| G4.5 | `docs/reports/step-4-artifacts.md` | Gate 4 | | | pass: docs/reports/step-4-artifacts.md |
 
 ### Step 5: eShop validation
 
