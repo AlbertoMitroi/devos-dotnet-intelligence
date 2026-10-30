@@ -1,6 +1,6 @@
 # Usage
 
-**What it does today:** exports the committed state, resolves each solution's SDK, restores, loads every project with Roslyn (syntax fallback otherwise), and writes the graph, observations, links, snippets, generated sources, context packs, `manifest.json` (written last, after validation against [contract v1](CONTRACT.md)) and `run.json`. `verify <generation>` repeats the checks. Restore needs the network; mount `/cache` to keep packages between runs. `--config` takes a YAML file with conventions: `messaging` (publish, subscribe, handler interfaces; see `tests/eshop/conventions.yml`), `workflow` (plugin interfaces of an in-house workflow engine and how each names its BPMN node or flow event; `metadata.nodeFields` copied from `*.ProcessMetaData.json`; see `tests/fixtures/f22-workflow-terraform/conventions.yml`) and `realtime` (helpers over SignalR). Configuration values are stored only as destinations (D21).
+**What it does today:** exports the committed state, resolves each solution's SDK, restores, loads every project with Roslyn (syntax fallback otherwise), and writes the graph, observations, links, snippets, generated sources, `index.sqlite` (SQLite with FTS5), context packs, a wiki, `manifest.json` (written last, after validation against [contract v1](CONTRACT.md)) and `run.json`. `verify <generation>` repeats the checks. Restore needs the network; mount `/cache` to keep packages between runs. `--config` takes a YAML file with conventions: `messaging` (publish, subscribe, handler interfaces; see `tests/eshop/conventions.yml`), `workflow` (plugin interfaces of an in-house workflow engine and how each names its BPMN node or flow event; `metadata.nodeFields` copied from `*.ProcessMetaData.json`; see `tests/fixtures/f22-workflow-terraform/conventions.yml`) and `realtime` (helpers over SignalR). Configuration values are stored only as destinations (D21).
 
 ## GitHub Action
 
@@ -58,6 +58,31 @@ docker run --rm --user "$(id -u):$(id -g)" \
 - `analyze` options: `--src`, `--out`, `--config`, `--solution`, `--include-working-tree`, `--offline` (recorded; restore still runs and reports failures without network).
 - Private NuGet feeds (used from Step 3 on): pass `NuGetPackageSourceCredentials_<source key>=Username=...;Password=...` as an environment variable; it never appears in outputs or logs.
 - `DI_IMAGE_DIGEST`: the image cannot know its own digest; pass it to have it recorded in the manifest, otherwise the manifest says `unknown`.
+
+## Query
+
+```bash
+docker run --rm -v "$PWD/intelligence-out:/g:ro" ghcr.io/albertomitroi/dotnet-intelligence:0.1.0 query /g http --route /api
+```
+
+| Command | Answers |
+|---|---|
+| `symbol <name or id>` | the entity and its declarations; several matches: the candidates and exit code 3 (none is picked). Names: id, simple name, or `Type.Member` |
+| `refs <symbol> [--usage read\|write\|invocation\|nameof\|typeof\|attribute\|other]` | every usage with path, line and the code line |
+| `callers`, `callees <symbol> [--depth N]` | bounded call graph; virtual and interface calls also through `possible_runtime_target` (candidate) |
+| `impl <symbol>` | implementations, overrides, derived types |
+| `di <service type>` | registrations (lifetime, implementation, conditional) and consumers |
+| `routes`, `endpoints [--route <prefix>]` | HTTP endpoints served by the repository |
+| `http [--route <prefix>]` | outgoing HTTP calls and the endpoints each is linked to (or why not) |
+| `calls-to <route prefix, gRPC service or observation id>` | the linked callers of matching endpoints |
+| `messages [contract]` | publishers, subscribers and their links |
+| `trace <symbol or observation> [--to <symbol, observation or project.csproj>] [--depth N]` | shortest path across calls, observations and links, with the weakest link; without `--to`, every reachable service-side observation |
+| `search <text> [--kind entity\|snippet\|observation] [--limit N]` | FTS5 over names, signatures, snippet lines and observation fields |
+| `dump` | canonical dump of the index (the determinism check) |
+
+- Text by default; `--json` prints canonical JSON rows (the shapes shared with angular-intelligence are listed in [CONTRACT.md](CONTRACT.md#indexsqlite)).
+- Exit codes: 0 results, 2 usage (also: no `index.sqlite`), 3 ambiguous name, 4 no results. In a partial generation an empty answer says so: absence of results is not proof of absence.
+- `index <generation> <file.sqlite>` builds the index of an older generation (written before the index existed) into a separate file; `query <file.sqlite> ...` reads it. The generation is not changed.
 
 ## Exit codes
 

@@ -18,3 +18,18 @@ relations:
       - possible_runtime_target src/Shapes/Shapes.csproj|M:Shapes.Use.Total(Shapes.IShape,Shapes.Animal) -> src/Shapes/Shapes.csproj|M:Shapes.Square.Area @src/Shapes/Shapes.cs:33
       - possible_runtime_target src/Shapes/Shapes.csproj|M:Shapes.Use.Total(Shapes.IShape,Shapes.Animal) -> src/Shapes/Shapes.csproj|M:Shapes.Dog.Sound @src/Shapes/Shapes.cs:32
 links: []
+queries:
+  - query: impl Shapes.IShape
+    exitCode: 0
+    lines:
+      - "implements  dotnet:src/Shapes/Shapes.csproj:T:Shapes.Circle  src/Shapes/Shapes.cs:8"
+      - "implements  dotnet:src/Shapes/Shapes.csproj:T:Shapes.Square  src/Shapes/Shapes.cs:13"
+  - query: callers Circle.Area
+    exitCode: 0
+    lines:
+      - "M:Shapes.Use.Total(Shapes.IShape,Shapes.Animal)  src/Shapes/Shapes.cs:33  (possible runtime target of dotnet:src/Shapes/Shapes.csproj:M:Shapes.IShape.Area)"
+  - query: trace Use.Total --to Dog.Sound
+    exitCode: 0
+    lines:
+      - "weakest link: step 1, candidate"
+      - "possible_runtime_target candidate  dotnet:src/Shapes/Shapes.csproj:M:Shapes.Dog.Sound  src/Shapes/Shapes.cs:32"

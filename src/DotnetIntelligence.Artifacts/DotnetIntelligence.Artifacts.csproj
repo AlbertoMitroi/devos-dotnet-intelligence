@@ -7,6 +7,10 @@
     <EmbeddedResource Include="../../schema/v1/*.schema.json" LogicalName="schema/v1/%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
+    <!-- index.sqlite (5.2); the bundled e_sqlite3 includes FTS5. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../DotnetIntelligence.Contracts/DotnetIntelligence.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>

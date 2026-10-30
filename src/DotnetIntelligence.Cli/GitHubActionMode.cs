@@ -61,6 +61,22 @@ public static class GitHubActionMode
             failOn);
     }
 
+    /// <summary>
+    /// The step outputs (5.6): status and coverage come from the written manifest, so they describe exactly the
+    /// generation a later step uploads; without a manifest (failed run), from the run's outcome.
+    /// </summary>
+    public static StringBuilder Outputs(string workspace, string output, AnalyzeOutcome outcome)
+    {
+        var relativeOutput = Path.GetRelativePath(workspace, output).Replace('\\', '/');
+        var manifest = outcome.ManifestPath is { } path && File.Exists(path) ? System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path)) : null;
+        var lines = new StringBuilder();
+        lines.Append("generation-path=").Append(relativeOutput).Append('\n');
+        lines.Append("manifest-path=").Append(manifest is null ? string.Empty : relativeOutput + "/manifest.json").Append('\n');
+        lines.Append("status=").Append((string?)manifest?["status"] ?? outcome.Status).Append('\n');
+        lines.Append("coverage=").Append(CanonicalJson.Serialize(manifest?["coverage"]?["summary"] ?? outcome.Coverage["summary"])).Append('\n');
+        return lines;
+    }
+
     /// <summary>Whether the step fails for a given status under fail-on.</summary>
     public static bool ShouldFail(FailOn failOn, string status) => failOn switch
     {
@@ -93,12 +109,7 @@ public static class GitHubActionMode
             await stdout.WriteLineAsync(Annotation(diagnostic)).ConfigureAwait(false);
         }
 
-        var relativeOutput = Path.GetRelativePath(workspace, output).Replace('\\', '/');
-        var lines = new StringBuilder();
-        lines.Append("generation-path=").Append(relativeOutput).Append('\n');
-        lines.Append("manifest-path=").Append(outcome.ManifestPath is null ? string.Empty : relativeOutput + "/manifest.json").Append('\n');
-        lines.Append("status=").Append(outcome.Status).Append('\n');
-        lines.Append("coverage=").Append(CanonicalJson.Serialize(outcome.Coverage["summary"])).Append('\n');
+        var lines = Outputs(workspace, output, outcome);
         if (environment.GetValueOrDefault("GITHUB_OUTPUT") is { Length: > 0 } outputFile)
         {
             await File.AppendAllTextAsync(outputFile, lines.ToString(), cancellationToken).ConfigureAwait(false);

@@ -50,3 +50,17 @@ runs:
         scope: repository
     links:
       - messaging consumes_contract exact src/Sales/Checkout.cs:7 -> src/Billing/OrderPlacedHandler.cs:5
+    queries:
+      - query: messages OrderPlaced
+        exitCode: 0
+        lines:
+          - "publish    name:OrderPlaced"
+          - "src/Sales/Checkout.cs:7"
+          - "-> consumes_contract exact  src/Billing/OrderPlacedHandler.cs:5"
+      - query: trace Sales.Checkout.Complete --to Billing.OrderPlacedHandler
+        exitCode: 0
+        lines:
+          - "(3 steps, weakest link: step 1, exact)"
+          - "1. messaging.publish exact"
+          - "2. link.consumes_contract exact"
+          - "3. messaging.subscribe.handler exact  dotnet:src/Billing/Billing.csproj:T:Billing.OrderPlacedHandler  src/Billing/OrderPlacedHandler.cs:5"

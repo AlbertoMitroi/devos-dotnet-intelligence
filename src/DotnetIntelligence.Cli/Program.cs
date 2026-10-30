@@ -13,6 +13,8 @@ namespace DotnetIntelligence.Cli
             "  version [--json]\n" +
             "  " + AnalyzeCommand.Usage + "\n" +
             "  verify <generation>\n" +
+            "  query <generation> <symbol|refs|callers|callees|impl|di|routes|endpoints|http|calls-to|messages|trace|search|dump> [args] [--json]\n" +
+            "  index <generation> <file.sqlite>   (rebuild the derived index apart from the generation)\n" +
             "  gha    (GitHub Docker container action mode; reads INPUT_* variables)\n";
 
         public static IReadOnlyDictionary<string, string?> ReadEnvironment()
@@ -41,6 +43,8 @@ namespace DotnetIntelligence.Cli
                     "analyze" => await AnalyzeCommand.RunAsync(args[1..], events, environment, cancellationToken).ConfigureAwait(false),
                     "gha" => await GitHubActionMode.RunAsync(events, stdout, environment, cancellationToken).ConfigureAwait(false),
                     "verify" => await VerifyCommand.RunAsync(args[1..], stdout, stderr).ConfigureAwait(false),
+                    "query" => await QueryCommand.RunAsync(args[1..], stdout).ConfigureAwait(false),
+                    "index" => await QueryCommand.IndexAsync(args[1..], stdout).ConfigureAwait(false),
                     "help" or "--help" or "-h" => await WriteHelpAsync(stdout).ConfigureAwait(false),
                     _ => throw new UsageException(Help),
                 };

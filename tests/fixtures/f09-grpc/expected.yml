@@ -30,3 +30,10 @@ observations:
 links:
   - grpc consumes_contract exact src/Greeter.Client/Program.cs:7 -> src/Greeter.Server/GreeterService.cs:7
   - di consumes_contract exact src/Greeter.Client/Program.cs:6 -> src/Greeter.Client/Program.cs:4
+queries:
+  - query: routes
+    exitCode: 4
+  - query: calls-to greet
+    exitCode: 0
+    lines:
+      - "<- exact  grpc.call src/Greeter.Client/Program.cs:7"

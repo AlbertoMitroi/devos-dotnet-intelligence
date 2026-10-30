@@ -51,6 +51,15 @@ public sealed class GenerationWriter
         stream.Write(content);
     }
 
+    /// <summary>Registers a file that another writer (SQLite) creates at the returned absolute path.</summary>
+    public string Reserve(string relativePath)
+    {
+        Create(relativePath).Dispose();
+        var absolute = Path.Combine(_root, relativePath);
+        File.Delete(absolute);
+        return absolute;
+    }
+
     public void WriteJson(string relativePath, JsonNode document)
     {
         using var stream = Create(relativePath);

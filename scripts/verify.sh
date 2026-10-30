@@ -67,7 +67,27 @@ for repo in "$work"/repos/*/; do
   docker run --rm --entrypoint diff -v "$work/out:/runs:ro" "$tag" -r -x run.json "/runs/$name-1" "/runs/$name-2"
   echo "$name: two runs identical"
   docker run --rm -v "$work/out:/runs:ro" "$tag" verify "/runs/$name-1"
+  # The canonical index dump, compared across architectures by CI with the generations (G4.2).
+  docker run --rm -v "$work/out:/runs:ro" "$tag" query "/runs/$name-1" dump > "$work/out/$name.index-dump"
 done
+
+step "query and tampered copy"
+docker run --rm -v "$work/out:/runs:ro" "$tag" query /runs/f08-http-aspire-1 http | tee "$work/query-f08.txt"
+grep -qF -- '-> exact GET /api/items/by  src/Catalog/Program.cs:4' "$work/query-f08.txt"
+set +e
+docker run --rm -v "$work/out:/runs:ro" "$tag" query /runs/f03-same-name-1 symbol Widget > /dev/null
+code=$?
+set -e
+[ "$code" -eq 3 ] || { echo "query symbol Widget: exit code $code, expected 3" >&2; exit 1; }
+cp -R "$work/out/f00-minimal-1" "$work/tampered"
+printf 'x' >> "$work/tampered/context/overview.md"
+set +e
+docker run --rm -v "$work/tampered:/g:ro" "$tag" verify /g > /dev/null 2>&1
+code=$?
+set -e
+[ "$code" -eq 50 ] || { echo "verify on a tampered copy: exit code $code, expected 50" >&2; exit 1; }
+rm -rf "$work/tampered"
+echo "query answers; verify rejects a tampered copy"
 
 step "GitHub Action mode"
 mkdir -p "$work/workspace"
