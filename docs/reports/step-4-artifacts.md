@@ -20,7 +20,7 @@ Shared definition with angular-intelligence: the index tables and columns and th
 | Gate | Check | Result |
 |---|---|---|
 | G4.1 links on fixtures 7 to 10 with evidence on both sides | `FixtureTests` (expected links of f06 to f10 as sets; evidence of both sides for every link of every fixture) | pass, 52 of 52 integration tests in the dev container (`dotnet test` of the integration project, SDK image with SDKs 10, 9, 8) |
-| G4.2 packs and wiki byte-identical across runs and architectures; dump identical | `verify.sh` two runs per fixture (`diff -r`, `index.sqlite` included); dumps written to `.verify/out/*.index-dump`; CI `compare` job diffs both architectures | two runs: pass (fixtures, eShopOnAbp twice, unit test). Architectures: CI run in "CI" below |
+| G4.2 packs and wiki byte-identical across runs and architectures; dump identical | `verify.sh` two runs per fixture (`diff -r`, `index.sqlite` included); dumps written to `.verify/out/*.index-dump`; CI `compare` job diffs both architectures | pass: two runs identical (fixtures, eShopOnAbp twice, unit test); amd64 and arm64 byte-identical in CI, `index.sqlite` and dumps included |
 | G4.3 verify passes on every fixture generation, fails on a tampered copy | `FixtureTests` runs `GenerationVerifier.Verify` on each generation; `verify.sh` and `verify.ps1` append a byte to a copy and expect exit 50 | pass |
 | G4.4 query answers fixture questions; exit 3 with candidates | `queries:` in `expected.yml` of f02, f03, f05, f06, f07, f08, f09, f10 (21 questions written from the fixture sources) | pass; `symbol Format` (f02) and `symbol Widget` (f03) exit 3 with both candidates |
 | G4.5 report | this file | |
@@ -47,6 +47,16 @@ docker run --rm -v "$PWD/out:/g:ro" di-step4:runtime query /g http --route /api/
 - Two eShopOnAbp runs are byte-identical except `run.json`, `index.sqlite` included.
 - The index is the largest file: ids are long (project path plus documentation id) and repeat across tables and indexes. It compresses to 20 %.
 - Building the eShopOnAbp index alone (`index` command): 6.9 s including container start.
+
+Reference generations in `~/repos/devos/_generations/` regenerated with the image of the final commit (each passes `verify`; lab repositories at their current `main`, restored from `lab-cache`; eShopOnAbp with a warm cache):
+
+| Generation | Commit | Status | Files | Size | index.sqlite | Links | `artifacts` stage | Total |
+|---|---|---|---|---|---|---|---|---|
+| eshoponabp-dotnet | `7bfed7a` | partial | 187 | 111.7 MiB | 72.6 MiB | 53 | 12.0 s | 84.8 s |
+| lab-core-dotnet | `cdc080f` | complete | 20 | 4.3 MiB | 2.9 MiB | 3 | 0.2 s | 4.6 s |
+| lab-intake-dotnet | `1e3322f` | complete | 21 | 2.1 MiB | 1.4 MiB | 5 | 0.1 s | 4.6 s |
+| lab-pricing-dotnet | `0ee03cc` | complete | 19 | 2.9 MiB | 1.9 MiB | 7 | 0.1 s | 4.2 s |
+| lab-leasing-dotnet | `c2dbb16` | complete | 57 | 15.8 MiB | 10.4 MiB | 78 | 0.8 s | 10.2 s |
 
 ### Query answers with evidence
 
@@ -100,11 +110,11 @@ Wall time of one `query` process inside the runtime image (process start include
 
 ## What was not verified
 
-- The `compare` job between amd64 and arm64 is the only cross-architecture check; see "CI".
+- Cross-architecture determinism is checked on the fixtures only (CI); eShopOnAbp and the lab repositories were analyzed on linux/arm64 only.
 - The GitHub Action outputs from the manifest are covered by the existing CI smoke test (`status`, `manifest-path`) and by unit tests; not on a real repository through a published image (no release yet).
 - The Mermaid rendering check is manual (above), not in CI.
 - No macOS-host comparison (Step 5).
 
 ## CI
 
-Filled after the run on the final commit.
+Run [41023416377](https://github.com/AlbertoMitroi/devos-dotnet-intelligence/actions/runs/41023416377) on `597a3ef` (Step 4 merged with `main` at `1bfbf08`): `verify (amd64)`, `verify (arm64)` (test stage with unit and integration tests, two runs per fixture, verify, index dumps, query and tampered-copy checks, `verify.ps1`, Action smoke test), `lint` and `compare amd64 and arm64`: all success. The compare job diffs every fixture generation of both architectures, 49 `index.sqlite` files included, with the 24 `*.index-dump` files: "amd64 and arm64 generations are byte-identical". G4.2 passes.
