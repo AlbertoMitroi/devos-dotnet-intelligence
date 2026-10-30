@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/query/v1/trace.schema.json",
+  "title": "query trace (optional, .NET)",
+  "type": "array",
+  "items": {
+    "required": [
+      "from",
+      "to",
+      "steps",
+      "weakest"
+    ],
+    "properties": {
+      "from": {
+        "type": "string"
+      },
+      "to": {
+        "type": "string"
+      },
+      "steps": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "to",
+            "kind",
+            "resolution",
+            "at",
+            "via"
+          ],
+          "properties": {
+            "resolution": {
+              "enum": [
+                "exact",
+                "ambiguous",
+                "candidate",
+                "unresolved"
+              ]
+            },
+            "at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^.+:[0-9]+$"
+            }
+          }
+        }
+      },
+      "weakest": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "required": [
+          "resolution",
+          "step"
+        ],
+        "properties": {
+          "resolution": {
+            "enum": [
+              "exact",
+              "ambiguous",
+              "candidate",
+              "unresolved"
+            ]
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "type": "object",
+    "additionalProperties": true
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/system/v1/system-manifest.schema.json",
+  "title": "System generation manifest (in addition to v1/manifest.schema.json with prefixed id patterns)",
+  "type": "object",
+  "required": [
+    "generationType",
+    "systemFormat",
+    "system",
+    "inputs",
+    "commit"
+  ],
+  "properties": {
+    "generationType": {
+      "const": "system"
+    },
+    "systemFormat": {
+      "type": "string"
+    },
+    "system": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^system:[0-9a-f]{64}$"
+    },
+    "repository": {
+      "type": "object",
+      "required": [
+        "remoteUrl"
+      ],
+      "properties": {
+        "remoteUrl": {
+          "type": "null"
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "commit",
+          "manifestSha256",
+          "included"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "manifestSha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "included": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

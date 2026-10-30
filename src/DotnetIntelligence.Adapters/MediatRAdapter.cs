@@ -1,14 +1,17 @@
 using System.Text.Json.Nodes;
+using DotnetIntelligence.Analysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace DotnetIntelligence.Adapters;
 
 /// <summary>
-/// MediatR (contract v1.1, in-process dispatch), by resolved symbol. ISender.Send / IPublisher.Publish (and IMediator)
-/// become inprocess.send with the request type; IRequestHandler, INotificationHandler and IStreamRequestHandler
-/// implementations become inprocess.handler. The linker joins them with dispatches_to links (via inprocess).
-/// A request whose static type is an interface or abstract type is a candidate: the runtime type decides.
+/// MediatR in-process dispatch (contract v1.2, C8), by resolved symbol. ISender.Send / IPublisher.Publish /
+/// CreateStream (and IMediator) become inprocess.send with the static type of the argument; one inprocess.handler per
+/// implemented IRequestHandler, INotificationHandler or IStreamRequestHandler interface, with the class as handler and
+/// the implementing Handle method as handlerMethod. Constructed generic requests carry requestTypeArguments. A send
+/// whose static type is an interface, an abstract class, a type parameter or object is a candidate; an open generic
+/// handler is a candidate on its type parameter's constraint, or a diagnostic when it has none.
 /// </summary>
 public sealed class MediatRAdapter(AdapterContext context)
 {
@@ -27,18 +30,45 @@ public sealed class MediatRAdapter(AdapterContext context)
         }
         foreach (var @interface in type.AllInterfaces.Where(i => i.IsGenericType))
         {
-            if (!Handlers.TryGetValue(AdapterContext.FullName(@interface.OriginalDefinition), out var pattern) || context.IdOf(@interface.TypeArguments[0]) is not { } requestId)
+            if (!Handlers.TryGetValue(AdapterContext.FullName(@interface.OriginalDefinition), out var pattern))
             {
                 continue;
             }
-            context.Observe("inprocess.handler", new JsonObject
+            var argument = @interface.TypeArguments[0];
+            var resolution = "exact";
+            if (argument is ITypeParameterSymbol parameter)
+            {
+                if (Constraint(parameter) is not { } constraint)
+                {
+                    context.Diagnostics.Add(new AnalysisDiagnostic(Analysis.DiagnosticSeverity.Info, "open-generic-handler-without-constraint", context.Project.ProjectPath, DiagnosticState.Unsupported,
+                        $"{AdapterContext.FullName(type)} handles {parameter.Name} of {AdapterContext.FullName(@interface.OriginalDefinition)} without a class or interface constraint; no inprocess.handler is emitted for it."));
+                    continue;
+                }
+                argument = constraint;
+                resolution = "candidate";
+            }
+            if (context.IdOf(argument) is not { } requestId)
+            {
+                continue;
+            }
+            var fields = new JsonObject
             {
                 ["request"] = requestId,
                 ["handler"] = handlerId,
                 ["mechanism"] = "mediatr",
                 ["pattern"] = pattern,
-                ["resolution"] = "exact",
-            }, context.Evidence(location));
+                ["resolution"] = resolution,
+            };
+            if (TypeArguments(argument) is { } arguments)
+            {
+                fields["requestTypeArguments"] = arguments;
+            }
+            var handle = @interface.GetMembers("Handle").OfType<IMethodSymbol>().FirstOrDefault();
+            if (handle is not null && type.FindImplementationForInterfaceMember(handle) is IMethodSymbol implementation && context.IdOf(implementation) is { } methodId)
+            {
+                fields["handlerMethod"] = methodId;
+            }
+            context.Observe("inprocess.handler", fields, context.Evidence(location));
         }
     }
 
@@ -58,18 +88,42 @@ public sealed class MediatRAdapter(AdapterContext context)
             return;
         }
         var request = AdapterContext.Unwrap(argument.Value).Type;
-        if (request is null || request.SpecialType == SpecialType.System_Object || context.IdOf(request) is not { } requestId
-            || context.EnclosingMember(invocation.Syntax, model) is not { } sender)
+        if (request is ITypeParameterSymbol parameter)
+        {
+            request = Constraint(parameter) ?? context.Compilation.GetSpecialType(SpecialType.System_Object);
+        }
+        if (request is null || context.IdOf(request) is not { } requestId || context.EnclosingMember(invocation.Syntax, model) is not { } sender)
         {
             return;
         }
-        context.Observe("inprocess.send", new JsonObject
+        var concrete = request.TypeKind is TypeKind.Class or TypeKind.Struct && !request.IsAbstract && request.SpecialType != SpecialType.System_Object
+            && AdapterContext.Unwrap(argument.Value).Type is not ITypeParameterSymbol;
+        var fields = new JsonObject
         {
             ["request"] = requestId,
             ["sender"] = sender,
             ["mechanism"] = "mediatr",
             ["pattern"] = pattern,
-            ["resolution"] = request.TypeKind == TypeKind.Interface || request.IsAbstract ? "candidate" : "exact",
-        }, context.Evidence(invocation.Syntax));
+            ["resolution"] = concrete ? "exact" : "candidate",
+        };
+        if (TypeArguments(request) is { } arguments)
+        {
+            fields["requestTypeArguments"] = arguments;
+        }
+        context.Observe("inprocess.send", fields, context.Evidence(invocation.Syntax));
+    }
+
+    private static ITypeSymbol? Constraint(ITypeParameterSymbol parameter) =>
+        parameter.ConstraintTypes.FirstOrDefault(t => t.TypeKind is TypeKind.Class or TypeKind.Interface);
+
+    /// <summary>Entities of the type arguments of a constructed generic type, in order; null for a non-generic type or when an argument has no entity (a type parameter).</summary>
+    private JsonArray? TypeArguments(ITypeSymbol type)
+    {
+        if (type is not INamedTypeSymbol { IsGenericType: true } named || SymbolEqualityComparer.Default.Equals(named, named.OriginalDefinition))
+        {
+            return null;
+        }
+        var ids = named.TypeArguments.Select(a => a is ITypeParameterSymbol ? null : context.IdOf(a)).ToList();
+        return ids.Any(i => i is null) ? null : new JsonArray(ids.Select(i => (JsonNode)i!).ToArray());
     }
 }

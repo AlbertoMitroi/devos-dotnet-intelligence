@@ -3,13 +3,14 @@ namespace DotnetIntelligence.Cli;
 public static class AnalyzeCommand
 {
     public const string Usage =
-        "Usage: analyze [--src <dir>] [--out <dir>] [--config <file>] [--solution <path>] [--include-working-tree] [--offline]";
+        "Usage: analyze [--src <dir>] [--out <dir>] [--config <file>] [--solution <path>] [--include-working-tree] [--offline] [--input-generation <dir>]...";
 
     public static AnalyzeOptions Parse(string[] args, IReadOnlyDictionary<string, string?> environment)
     {
         string source = "/src", output = "/out";
         string? config = null, solution = null;
         bool includeWorkingTree = false, offline = false;
+        var inputs = new List<string>();
         for (var i = 0; i < args.Length; i++)
         {
             string Value() => i + 1 < args.Length ? args[++i] : throw new UsageException($"Missing value for {args[i]}.\n{Usage}");
@@ -21,13 +22,14 @@ public static class AnalyzeCommand
                 case "--solution": solution = Value(); break;
                 case "--include-working-tree": includeWorkingTree = true; break;
                 case "--offline": offline = true; break;
+                case "--input-generation": inputs.Add(Path.GetFullPath(Value())); break;
                 default: throw new UsageException($"Unknown option '{args[i]}'.\n{Usage}");
             }
         }
         var workBase = environment.TryGetValue("DI_WORK", out var work) && !string.IsNullOrWhiteSpace(work) ? work : "/work";
         var nugetPackages = environment.TryGetValue("NUGET_PACKAGES", out var packages) && !string.IsNullOrWhiteSpace(packages) ? packages : "/cache/nuget";
         return new AnalyzeOptions(Path.GetFullPath(source), Path.GetFullPath(output), config, solution, includeWorkingTree, offline, workBase,
-            nugetPackages, [Path.GetFullPath(output)]);
+            nugetPackages, [Path.GetFullPath(output)], inputs);
     }
 
     public static async Task<int> RunAsync(

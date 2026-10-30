@@ -104,6 +104,18 @@ public static class GenerationVerifier
                 {
                     Error($"{file}:{lineNumber}: {problem}");
                 }
+                // v1.2: observations of a kind with its own schema (schema/v1/kinds) are checked against it too.
+                if (name == "observation" && (string?)record["kind"] is { } kind && validator.Names.Contains(kind))
+                {
+                    foreach (var problem in validator.Validate(kind, record))
+                    {
+                        Error($"{file}:{lineNumber}: {kind}: {problem}");
+                    }
+                }
+                if (name == "observation" && (string?)record["site"] is { } site && record["evidence"]?.AsArray().All(e => (string?)e != site) == true)
+                {
+                    Error($"{file}:{lineNumber}: site '{site}' is not one of the observation's evidence");
+                }
                 var id = (string?)record["id"];
                 if (id is not null && previousId is not null && string.CompareOrdinal(previousId, id) >= 0)
                 {
@@ -121,6 +133,10 @@ public static class GenerationVerifier
         var snippets = Ids(records["snippets.ndjson"]);
         var observations = Ids(records["graph/observations.ndjson"]);
 
+        foreach (var context in records["graph/projects.ndjson"].Where(r => (string?)r["recordType"] == "analysisContext"))
+        {
+            Require(projects, (string?)context["projectId"], $"analysis context {context["id"]}: projectId");
+        }
         foreach (var entity in records["graph/entities.ndjson"])
         {
             if ((string?)entity["container"] is { } container && !entities.Contains(container))

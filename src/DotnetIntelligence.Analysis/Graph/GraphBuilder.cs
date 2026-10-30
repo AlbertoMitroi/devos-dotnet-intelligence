@@ -141,8 +141,16 @@ public sealed class GraphBuilder(string extractor, SecretScrubber scrubber)
         accumulator.Add(evidenceId);
     }
 
+    /// <summary>
+    /// Adds (or merges into) an observation. The first evidence id is the observation's <c>site</c> (contract v1.2): adapters
+    /// pass the location of the fact first (the call, the mapping call, the registration, the declaration, the key) and
+    /// context after it. When two adds merge, the ordinal smaller site is kept, so parallel adapters stay deterministic.
+    /// </summary>
     public void AddObservation(string kind, JsonObject fields, IEnumerable<string> evidenceIds)
     {
+        var ordered = evidenceIds.ToList();
+        var site = ordered[0];
+        evidenceIds = ordered;
         var identity = (JsonObject)fields.DeepClone();
         identity["kind"] = kind;
         var id = Hashing.RecordId("obs", identity);
@@ -152,6 +160,7 @@ public sealed class GraphBuilder(string extractor, SecretScrubber scrubber)
                 var record = (JsonObject)identity.DeepClone();
                 record["id"] = id;
                 record["evidence"] = new JsonArray(evidenceIds.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(e => (JsonNode)e).ToArray());
+                record["site"] = site;
                 return record;
             },
             (_, existing) =>
@@ -160,6 +169,7 @@ public sealed class GraphBuilder(string extractor, SecretScrubber scrubber)
                     .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(e => (JsonNode)e).ToArray();
                 var record = (JsonObject)existing.DeepClone();
                 record["evidence"] = new JsonArray(merged);
+                record["site"] = string.CompareOrdinal((string)existing["site"]!, site) <= 0 ? (string)existing["site"]! : site;
                 return record;
             });
     }

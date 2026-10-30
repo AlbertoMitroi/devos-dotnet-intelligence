@@ -31,7 +31,7 @@ public static class ContextPackWriter
     }
 
     public static string CardName(string projectPath) =>
-        Path.GetFileNameWithoutExtension(projectPath) + "-" + Contracts.Hashing.Sha256Hex(projectPath)[..8];
+        ServiceModel.ProjectName(projectPath) + "-" + Contracts.Hashing.Sha256Hex(projectPath)[..8];
 
     private static string Overview(ServiceModel model)
     {

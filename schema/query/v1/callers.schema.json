@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/query/v1/callers.schema.json",
+  "title": "query callers / callees",
+  "type": "array",
+  "items": {
+    "required": [
+      "depth",
+      "of",
+      "other",
+      "path",
+      "line"
+    ],
+    "properties": {
+      "depth": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "of": {
+        "type": "string"
+      },
+      "other": {
+        "type": "string"
+      },
+      "path": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "line": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 1
+      },
+      "kind": {
+        "enum": [
+          "calls_declared_target",
+          "possible_runtime_target"
+        ]
+      },
+      "resolution": {
+        "enum": [
+          "exact",
+          "ambiguous",
+          "candidate",
+          "unresolved"
+        ]
+      },
+      "declared_target": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "type": "object",
+    "additionalProperties": true
+  }
+}

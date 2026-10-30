@@ -33,8 +33,9 @@ public sealed class SignalRAdapter(AdapterContext context)
         }
         if (method.Name is "SendAsync" or "SendCoreAsync" && containing is SignalR + ".ClientProxyExtensions" or SignalR + ".IClientProxy" or SignalR + ".ISingleClientProxy")
         {
-            var (name, constant) = context.StringTemplate(AdapterContext.Argument(invocation, "method"));
-            Send(invocation, model, AdapterContext.Receiver(invocation), name, constant, "signalr");
+            var methodArgument = AdapterContext.Argument(invocation, "method");
+            var (name, constant) = context.StringTemplate(methodArgument);
+            Send(invocation, model, AdapterContext.Receiver(invocation), name, constant, "signalr", DestinationParameter(methodArgument, "method"));
             return;
         }
         // Strongly typed hubs: Clients.All.ReceiveOrder(...) on the client interface T of IHubContext<THub, T> / Hub<T>.
@@ -65,10 +66,19 @@ public sealed class SignalRAdapter(AdapterContext context)
         }
     }
 
-    private void Send(IInvocationOperation invocation, SemanticModel model, IOperation? receiver, string? method, bool constant, string via)
+    /// <summary>
+    /// C7 template: the destination is a parameter of the member that contains the call (a helper such as
+    /// SendToAll(string method, ...)); call sites carry the value in call.argument observations.
+    /// </summary>
+    internal static JsonObject? DestinationParameter(IOperation? argument, string field) =>
+        argument is null ? null : AdapterContext.Unwrap(argument) is IParameterReferenceOperation { Parameter: var parameter } && parameter.ContainingSymbol is IMethodSymbol
+            ? new JsonObject { ["field"] = field, ["parameter"] = parameter.Name, ["ordinal"] = parameter.Ordinal }
+            : null;
+
+    private void Send(IInvocationOperation invocation, SemanticModel model, IOperation? receiver, string? method, bool constant, string via, JsonObject? destinationParameter = null)
     {
         var (hub, audience, detail) = Target(receiver, invocation, model);
-        context.Observe("realtime.send", new JsonObject
+        var fields = new JsonObject
         {
             ["hub"] = hub,
             ["method"] = method,
@@ -77,7 +87,12 @@ public sealed class SignalRAdapter(AdapterContext context)
             ["resolution"] = method is null ? "unresolved" : constant && hub is not null ? "exact" : "candidate",
             ["ext.dotnet.audience"] = detail,
             ["ext.dotnet.via"] = via,
-        }, context.Evidence(invocation.Syntax));
+        };
+        if (destinationParameter is not null)
+        {
+            fields["destinationParameter"] = destinationParameter;
+        }
+        context.Observe("realtime.send", fields, context.Evidence(invocation.Syntax));
     }
 
     /// <summary>The hub entity and audience behind "hubContext.Clients.Group(x)" or "Clients.All" inside a hub.</summary>

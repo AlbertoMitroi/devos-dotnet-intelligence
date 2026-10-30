@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/ui.directive.schema.json",
+  "title": "Observation ui.directive (Angular directive)",
+  "type": "object",
+  "required": [
+    "kind",
+    "directive",
+    "selector"
+  ],
+  "properties": {
+    "kind": {
+      "const": "ui.directive"
+    },
+    "directive": {
+      "type": "string",
+      "pattern": "^ts:"
+    },
+    "selector": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ext": {
+      "type": "object",
+      "properties": {
+        "angular": {
+          "type": "object",
+          "properties": {
+            "standalone": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

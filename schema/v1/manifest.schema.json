@@ -131,6 +131,13 @@
         "name",
         "version"
       ]
+    },
+    "generationType": {
+      "enum": [
+        "repository",
+        "system"
+      ],
+      "description": "v1.2: `system` for a system generation (schema/system/v1/system-manifest.schema.json); absent means `repository`."
     }
   },
   "additionalProperties": true

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/system/v1/input.schema.json",
+  "title": "Input record (inputs.ndjson)",
+  "type": "object",
+  "required": [
+    "id",
+    "recordType",
+    "repository",
+    "commit",
+    "engine",
+    "schemaVersion",
+    "status",
+    "manifestSha256",
+    "included",
+    "verification"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "recordType": {
+      "const": "input"
+    },
+    "repository": {
+      "type": "object"
+    },
+    "commit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dirty": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "engine": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "imageDigest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schemaVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "manifestSha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "included": {
+      "type": "boolean"
+    },
+    "verification": {
+      "type": "object",
+      "required": [
+        "result",
+        "errors",
+        "references",
+        "notes"
+      ],
+      "properties": {
+        "result": {
+          "enum": [
+            "ok",
+            "ok-with-defects",
+            "failed"
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -12,7 +12,8 @@ public static class Linker
 {
     private static readonly string[] Strength = ["unresolved", "candidate", "ambiguous", "exact"];
 
-    public static IReadOnlyList<JsonObject> Link(IReadOnlyList<JsonObject> observations, IReadOnlyList<JsonObject> projects)
+    /// <param name="relations">inherits and implements relations, for candidate in-process sends (C8 rule 4); others are ignored.</param>
+    public static IReadOnlyList<JsonObject> Link(IReadOnlyList<JsonObject> observations, IReadOnlyList<JsonObject> projects, IEnumerable<JsonObject>? relations = null)
     {
         var links = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
         var byKind = observations.GroupBy(o => (string)o["kind"]!, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
@@ -131,16 +132,8 @@ public static class Linker
                 keepUnresolved: exactTargets.Count == 0, fanOut: true);
         }
 
-        // ---- in-process dispatch: inprocess.send -> inprocess.handler of the same request type ----
-        var handlersByRequest = Of("inprocess.handler").GroupBy(h => $"{h["mechanism"]}|{h["request"]}", StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
-        foreach (var send in Of("inprocess.send"))
-        {
-            var targets = handlersByRequest.GetValueOrDefault($"{send["mechanism"]}|{send["request"]}") ?? [];
-            // A notification reaches every handler (fan-out); a request has one handler, several are ambiguous.
-            AddLinks(links, "dispatches_to", "inprocess", send, targets, Evidence(send), [(string)send["resolution"]!],
-                targets.Count == 0 ? $"No {send["mechanism"]} handler of {send["request"]} was found in the repository." : null,
-                keepUnresolved: true, fanOut: (string?)send["pattern"] == "notification");
-        }
+        // ---- in-process dispatch (contract v1.2, C8): inprocess.send -> inprocess.handler ----
+        LinkDispatch(links, Of("inprocess.send"), Of("inprocess.handler"), relations ?? []);
 
         // ---- workflow: workflow.node -> workflow.handler by role, process and name (conventions) ----
         var workflowHandlers = Of("workflow.handler").Where(h => (string?)h["resolution"] != "unresolved").ToList();
@@ -212,6 +205,102 @@ public static class Linker
 
         return links.Values.ToList();
     }
+
+    /// <summary>
+    /// C8: handlers of a send share mechanism, pattern (defaults: request for mediatr, notification for ngrx) and request
+    /// (and requestTypeArguments when both carry them). request and stream: one handler gives one link as strong as both
+    /// sides, several are all ambiguous, none is unresolved. notification fans out. A candidate send links, as candidate,
+    /// to every handler whose request derives from or implements its static type. Evidence: both sites.
+    /// </summary>
+    private static void LinkDispatch(Dictionary<string, JsonObject> links, List<JsonObject> sends, List<JsonObject> handlers, IEnumerable<JsonObject> relations)
+    {
+        var supertypes = relations.Where(r => (string?)r["kind"] is "inherits" or "implements")
+            .GroupBy(r => (string)r["from"]!, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Select(r => (string)r["to"]!).ToList(), StringComparer.Ordinal);
+        bool DerivesFrom(string type, string ancestor)
+        {
+            if (ancestor.EndsWith(":T:System.Object", StringComparison.Ordinal))
+            {
+                return true;
+            }
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var stack = new Stack<string>([type]);
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                if (current == ancestor)
+                {
+                    return true;
+                }
+                foreach (var next in supertypes.GetValueOrDefault(current) ?? [])
+                {
+                    if (seen.Add(next))
+                    {
+                        stack.Push(next);
+                    }
+                }
+            }
+            return false;
+        }
+        static string PatternOf(JsonObject o) => (string?)o["pattern"] ?? ((string?)o["mechanism"] == "ngrx" ? "notification" : "request");
+        static string? Arguments(JsonObject o) => o["requestTypeArguments"] is JsonArray a ? a.ToJsonString() : null;
+
+        foreach (var send in sends)
+        {
+            var pattern = PatternOf(send);
+            var request = (string)send["request"]!;
+            var sendResolution = (string?)send["resolution"] ?? "exact";
+            var sameKind = handlers.Where(h => (string?)h["mechanism"] == (string?)send["mechanism"] && PatternOf(h) == pattern).ToList();
+            var evidence = Site(send);
+            if (sendResolution == "candidate")
+            {
+                var derived = sameKind.Where(h => (string)h["request"]! == request || DerivesFrom((string)h["request"]!, request))
+                    .OrderBy(h => (string)h["id"]!, StringComparer.Ordinal).ToList();
+                if (derived.Count == 0)
+                {
+                    Add(links, "dispatches_to", "inprocess", send, null, "unresolved", evidence,
+                        $"No {send["mechanism"]} {pattern} handler of a request that derives from or implements {request} was found in the repository.");
+                }
+                foreach (var handler in derived)
+                {
+                    Add(links, "dispatches_to", "inprocess", send, handler, "candidate", [.. evidence, .. Site(handler)], null);
+                }
+                continue;
+            }
+            var matching = sameKind.Where(h => (string)h["request"]! == request
+                    && (Arguments(send) is null || Arguments(h) is null || Arguments(send) == Arguments(h)))
+                .OrderBy(h => (string)h["id"]!, StringComparer.Ordinal).ToList();
+            if (matching.Count == 0)
+            {
+                // Open generic handlers (candidate, request = their constraint) receive every request that derives from it.
+                var open = sameKind.Where(h => (string?)h["resolution"] == "candidate" && DerivesFrom(request, (string)h["request"]!))
+                    .OrderBy(h => (string)h["id"]!, StringComparer.Ordinal).ToList();
+                foreach (var handler in open)
+                {
+                    Add(links, "dispatches_to", "inprocess", send, handler, "candidate", [.. evidence, .. Site(handler)],
+                        $"Open generic handler: {request} satisfies its constraint {handler["request"]}.");
+                }
+                if (open.Count == 0)
+                {
+                    Add(links, "dispatches_to", "inprocess", send, null, "unresolved", evidence,
+                        $"No {send["mechanism"]} {pattern} handler of {request} was found in the repository.");
+                }
+                continue;
+            }
+            foreach (var handler in matching)
+            {
+                var oneSided = (Arguments(send) is null) != (Arguments(handler) is null);
+                var weakest = new[] { sendResolution, (string?)handler["resolution"] ?? "exact", oneSided ? "candidate" : "exact" }
+                    .Select(r => Array.IndexOf(Strength, r)).Where(i => i >= 0).DefaultIfEmpty(3).Min();
+                var resolution = pattern != "notification" && matching.Count > 1 ? (weakest >= 2 ? "ambiguous" : Strength[weakest]) : Strength[weakest];
+                Add(links, "dispatches_to", "inprocess", send, handler, resolution, [.. evidence, .. Site(handler)],
+                    oneSided ? $"Only the {(Arguments(send) is null ? "handler" : "send")} states the type arguments of the generic request {request}." : null);
+            }
+        }
+    }
+
+    /// <summary>The observation's site (v1.2), else its whole evidence list.</summary>
+    private static List<string> Site(JsonObject observation) => (string?)observation["site"] is { } site ? [site] : Evidence(observation);
 
     /// <summary>
     /// One target per subscription (project and handler): the handler interface and the subscription registration are

@@ -40,6 +40,9 @@ public sealed class AdapterContext
     /// <summary>Configuration values of the repository, used only for destinations (D21).</summary>
     public ConfigurationValues? Configuration { get; init; }
 
+    /// <summary>Problems adapters report (for example an open generic handler without a constraint); shared by every context of a run.</summary>
+    public List<AnalysisDiagnostic> Diagnostics { get; init; } = [];
+
     /// <summary>Caller conventions (configuration file).</summary>
     public Conventions Conventions { get; init; } = new();
 

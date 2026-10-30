@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/ui.route.schema.json",
+  "title": "Observation ui.route (client route)",
+  "type": "object",
+  "required": [
+    "kind",
+    "path",
+    "component",
+    "loadComponent",
+    "loadChildren",
+    "redirectTo",
+    "guards",
+    "resolvers"
+  ],
+  "properties": {
+    "kind": {
+      "const": "ui.route"
+    },
+    "path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^/"
+    },
+    "component": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^(ts:|unresolved$)"
+    },
+    "loadComponent": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^(ts:|unresolved$)"
+    },
+    "loadChildren": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^(ts:|unresolved$)"
+    },
+    "redirectTo": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "guards": {
+      "type": "object"
+    },
+    "resolvers": {
+      "type": "object"
+    },
+    "ext": {
+      "type": "object",
+      "properties": {
+        "angular": {
+          "type": "object",
+          "properties": {
+            "relativePath": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "lazy": {
+              "type": "boolean"
+            },
+            "outlet": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "pathMatch": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

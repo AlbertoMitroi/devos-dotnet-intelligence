@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/query/v1/http.schema.json",
+  "title": "query http: the http.call record plus `at`; .NET adds `targets`",
+  "type": "array",
+  "items": {
+    "required": [
+      "id",
+      "kind",
+      "at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^obs:[0-9a-f]{32}$"
+      },
+      "kind": {
+        "const": "http.call"
+      },
+      "at": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^.+:[0-9]+$"
+      },
+      "targets": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "kind",
+            "resolution",
+            "reason",
+            "to"
+          ]
+        }
+      }
+    },
+    "type": "object",
+    "additionalProperties": true
+  }
+}

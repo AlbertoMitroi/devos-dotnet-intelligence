@@ -1,0 +1,25 @@
+# Fixture 24: package identity under SDK 8 (global.json 8.0.100, latestFeature). Directory.Build.props sets Version
+# 1.4.2 and IsPackable false; Lib opts in with IsPackable and PackageId Contoso.Lib; App keeps the defaults (PackageId is
+# the assembly name). SDK 8 prints a workload notice on stdout before the JSON of "msbuild -getProperty", which once
+# left every package field null with no diagnostic (lab-core, lab-pricing).
+exitCode: 0
+status: complete
+loadModes:
+  src/App/App.csproj: semantic
+  src/Lib/Lib.csproj: semantic
+projects:
+  src/Lib/Lib.csproj:
+    resolvedSdk: 8.0.427
+    packageId: Contoso.Lib
+    packageVersion: 1.4.2
+    isPackable: "true"
+  src/App/App.csproj:
+    packageId: App
+    packageVersion: 1.4.2
+    isPackable: "false"
+links: []
+queries:
+  - query: callers Greeter.Hello
+    exitCode: 0
+    lines:
+      - "M:App.Use.Run  src/App/Use.cs:5"

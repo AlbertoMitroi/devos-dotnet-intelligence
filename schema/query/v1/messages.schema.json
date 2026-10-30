@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/query/v1/messages.schema.json",
+  "title": "query messages (optional, .NET): publish and subscribe records plus `at`; publishes add `targets`",
+  "type": "array",
+  "items": {
+    "required": [
+      "id",
+      "kind",
+      "at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^obs:[0-9a-f]{32}$"
+      },
+      "kind": {
+        "enum": [
+          "messaging.publish",
+          "messaging.subscribe"
+        ]
+      },
+      "at": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^.+:[0-9]+$"
+      },
+      "targets": {
+        "type": "array"
+      }
+    },
+    "type": "object",
+    "additionalProperties": true
+  }
+}

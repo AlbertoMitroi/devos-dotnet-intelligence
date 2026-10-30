@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/realtime.invoke.schema.json",
+  "title": "Observation realtime.invoke (client to server call on a hub)",
+  "type": "object",
+  "required": [
+    "kind",
+    "route",
+    "hub",
+    "method",
+    "client",
+    "resolution",
+    "mode"
+  ],
+  "properties": {
+    "kind": {
+      "const": "realtime.invoke"
+    },
+    "route": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^/"
+    },
+    "hub": {
+      "type": "string"
+    },
+    "method": {
+      "type": "string"
+    },
+    "client": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^ts:"
+    },
+    "resolution": {
+      "enum": [
+        "exact",
+        "ambiguous",
+        "candidate",
+        "unresolved"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "invoke",
+        "send",
+        "stream"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

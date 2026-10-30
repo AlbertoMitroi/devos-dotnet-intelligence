@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/query/v1/symbol.schema.json",
+  "title": "query symbol: one entity and its declarations",
+  "required": [
+    "entity",
+    "declarations"
+  ],
+  "properties": {
+    "entity": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "name"
+      ]
+    },
+    "declarations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "line"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": true
+}

@@ -25,7 +25,8 @@ public static class AdapterRunner
         SymbolIdentity identity,
         IReadOnlyList<WorkingCopyFile> repositoryFiles,
         Conventions conventions,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyList<DestinationTemplate>? inputTemplates = null)
     {
         var calls = new CallGraph(graph.Relations.Where(r => (string)r["kind"]! == "calls_declared_target")
             .Select(r => ((string)r["from"]!, (string)r["to"]!)));
@@ -33,8 +34,10 @@ public static class AdapterRunner
         var repositoryProjects = repositoryFiles.Select(f => f.Path).Where(p => p.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)).ToHashSet(StringComparer.Ordinal);
         var projectGraph = new ProjectGraph(projects.Select(p => p.Project).ToList(), files);
         var configuration = new ConfigurationValues(files.Root, repositoryFiles, projectGraph);
+        var adapterDiagnostics = new List<AnalysisDiagnostic>();
         AdapterContext Context(LoadedProject project, string contextId) => new(project, contextId, graph, files, identity)
         {
+            Diagnostics = adapterDiagnostics,
             RepositoryProjects = repositoryProjects,
             RepositoryFiles = repositoryFiles,
             Configuration = configuration,
@@ -124,9 +127,82 @@ public static class AdapterRunner
         elasticsearch.Emit();
         abp.Emit();
 
+        // C7 call sites, after every template of this run exists.
+        var templates = CallArgumentAdapter.SourceTemplates(graph).Concat(inputTemplates ?? []).ToList();
+        foreach (var (project, contextId) in projects)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallArgumentAdapter.Visit(Context(project, contextId), templates, cancellationToken);
+        }
+
         var (diagnostics, repositoryContext) = ReadFiles(contexts, graph, files, repositoryFiles, conventions);
+        diagnostics.AddRange(adapterDiagnostics);
+        AddMissingMetadataEntities(projects, graph, identity);
         return new AdapterResult(suggestions, diagnostics, repositoryContext);
     }
+
+    /// <summary>
+    /// Every entity id an observation names has an entity record (3.6). Source symbols are declared by extraction; a
+    /// metadata symbol that only an adapter names (for example a constructed ABP event type) gets its record here, found
+    /// by documentation comment id in the compilation of the observation's context.
+    /// </summary>
+    private static void AddMissingMetadataEntities(IReadOnlyList<(LoadedProject Project, string ContextId)> projects, GraphBuilder graph, SymbolIdentity identity)
+    {
+        var compilations = projects.Where(p => p.Project.Compilation is not null).ToDictionary(p => p.ContextId, p => p.Project.Compilation!, StringComparer.Ordinal);
+        foreach (var observation in graph.Observations.OrderBy(o => (string)o["id"]!, StringComparer.Ordinal).ToList())
+        {
+            if ((string?)observation["context"] is not { } context || !compilations.TryGetValue(context, out var compilation))
+            {
+                continue;
+            }
+            foreach (var id in EntityIds(observation).Where(id => id.StartsWith("dotnet:pkg:", StringComparison.Ordinal) && !graph.HasEntity(id)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+            {
+                var documentationId = id[(id.IndexOf(':', id.IndexOf(':', "dotnet:pkg:".Length) + 1) + 1)..];
+                if (DocumentationCommentId.GetFirstSymbolForDeclarationId(documentationId, compilation) is { } symbol && identity.IdOf(symbol, compilation) == id)
+                {
+                    AddMetadataEntity(graph, identity, compilation, symbol);
+                }
+            }
+        }
+    }
+
+    private static string? AddMetadataEntity(GraphBuilder graph, SymbolIdentity identity, Compilation compilation, ISymbol symbol)
+    {
+        if (identity.IdOf(symbol, compilation) is not { } id || graph.HasEntity(id) || symbol.Locations.Any(l => l.IsInSource))
+        {
+            return identity.IdOf(symbol, compilation);
+        }
+        var container = symbol.ContainingType is { } containingType ? AddMetadataEntity(graph, identity, compilation, containingType) : null;
+        graph.AddEntity(id, () =>
+        {
+            var entity = new System.Text.Json.Nodes.JsonObject
+            {
+                ["kind"] = SymbolIdentity.KindOf(symbol),
+                ["name"] = symbol.Name,
+                ["container"] = container,
+                ["signature"] = symbol.ToDisplayString(SymbolIdentity.SignatureFormat),
+                ["accessibility"] = SymbolIdentity.AccessibilityOf(symbol),
+                ["modifiers"] = new System.Text.Json.Nodes.JsonArray(SymbolIdentity.ModifiersOf(symbol).Select(m => (System.Text.Json.Nodes.JsonNode)m).ToArray()),
+                ["origin"] = "metadata",
+                ["documentationId"] = symbol.GetDocumentationCommentId(),
+                ["assembly"] = symbol.ContainingAssembly?.Name,
+            };
+            if (symbol.ContainingNamespace is { IsGlobalNamespace: false } metadataNamespace)
+            {
+                entity["namespace"] = metadataNamespace.ToDisplayString();
+            }
+            return entity;
+        });
+        return id;
+    }
+
+    private static IEnumerable<string> EntityIds(System.Text.Json.Nodes.JsonNode? node) => node switch
+    {
+        System.Text.Json.Nodes.JsonObject obj => obj.SelectMany(p => EntityIds(p.Value)),
+        System.Text.Json.Nodes.JsonArray array => array.SelectMany(EntityIds),
+        System.Text.Json.Nodes.JsonValue value when value.TryGetValue<string>(out var text) && text.StartsWith("dotnet:", StringComparison.Ordinal) => [text],
+        _ => [],
+    };
 
     /// <summary>
     /// BPMN and Terraform files: owned by the deepest project whose directory contains them, else by the repository

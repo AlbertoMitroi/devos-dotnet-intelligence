@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/inprocess.send.schema.json",
+  "title": "Observation inprocess.send (in-process dispatch of a request, notification or action)",
+  "type": "object",
+  "required": [
+    "kind",
+    "request",
+    "sender",
+    "mechanism"
+  ],
+  "properties": {
+    "kind": {
+      "const": "inprocess.send"
+    },
+    "request": {
+      "type": "string",
+      "pattern": "^(dotnet|ts):"
+    },
+    "sender": {
+      "type": "string",
+      "pattern": "^(dotnet|ts):"
+    },
+    "mechanism": {
+      "type": "string"
+    },
+    "pattern": {
+      "enum": [
+        "request",
+        "notification",
+        "stream"
+      ]
+    },
+    "resolution": {
+      "enum": [
+        "exact",
+        "ambiguous",
+        "candidate",
+        "unresolved"
+      ]
+    },
+    "requestTypeArguments": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(dotnet|ts):"
+      }
+    }
+  },
+  "additionalProperties": true
+}

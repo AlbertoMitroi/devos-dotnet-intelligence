@@ -19,7 +19,7 @@
     },
     "kind": {
       "type": "string",
-      "description": "v1 kinds are listed in docs/CONTRACT.md; unknown kinds from newer minors are kept and reported, not rejected (3.5)."
+      "description": "Kinds are listed in docs/CONTRACT-v1.0.md, v1.1 and v1.2; unknown kinds from newer minors are kept and reported, not rejected (compatibility rule 4)."
     },
     "via": {
       "enum": [
@@ -71,6 +71,13 @@
     },
     "reason": {
       "type": "string"
+    },
+    "scope": {
+      "enum": [
+        "repository",
+        "system"
+      ],
+      "description": "v1.2: `system` for links a federation adds across inputs (schema/system/v1/system-link.schema.json); absent means `repository`."
     }
   },
   "additionalProperties": true

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/ui.uses_directive.schema.json",
+  "title": "Observation ui.uses_directive (a template uses a directive)",
+  "type": "object",
+  "required": [
+    "kind",
+    "from",
+    "selector",
+    "to"
+  ],
+  "properties": {
+    "kind": {
+      "const": "ui.uses_directive"
+    },
+    "from": {
+      "type": "string",
+      "pattern": "^ts:"
+    },
+    "selector": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string",
+      "pattern": "^(ts:|unresolved$)"
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

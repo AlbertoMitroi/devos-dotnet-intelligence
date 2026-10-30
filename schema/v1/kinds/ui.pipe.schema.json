@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/ui.pipe.schema.json",
+  "title": "Observation ui.pipe (Angular pipe)",
+  "type": "object",
+  "required": [
+    "kind",
+    "pipe",
+    "name"
+  ],
+  "properties": {
+    "kind": {
+      "const": "ui.pipe"
+    },
+    "pipe": {
+      "type": "string",
+      "pattern": "^ts:"
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ext": {
+      "type": "object",
+      "properties": {
+        "angular": {
+          "type": "object",
+          "properties": {
+            "standalone": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

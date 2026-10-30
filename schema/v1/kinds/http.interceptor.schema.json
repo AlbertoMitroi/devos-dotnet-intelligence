@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/http.interceptor.schema.json",
+  "title": "Observation http.interceptor (HTTP interceptor that rewrites the request URL)",
+  "type": "object",
+  "required": [
+    "kind",
+    "interceptor",
+    "urlPrefix",
+    "registered"
+  ],
+  "properties": {
+    "kind": {
+      "const": "http.interceptor"
+    },
+    "interceptor": {
+      "type": "string",
+      "pattern": "^ts:"
+    },
+    "urlPrefix": {
+      "type": "string"
+    },
+    "registered": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/http.proxy.schema.json",
+  "title": "Observation http.proxy (development proxy rule, D20 destination)",
+  "type": "object",
+  "required": [
+    "kind",
+    "prefix",
+    "target",
+    "secret",
+    "configuration",
+    "file",
+    "pathRewrite",
+    "nameSource"
+  ],
+  "properties": {
+    "kind": {
+      "const": "http.proxy"
+    },
+    "prefix": {
+      "type": "string"
+    },
+    "target": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "secret": {
+      "type": "boolean"
+    },
+    "configuration": {
+      "type": "string"
+    },
+    "file": {
+      "type": "string"
+    },
+    "pathRewrite": {
+      "type": "object"
+    },
+    "nameSource": {
+      "const": "configuration"
+    }
+  },
+  "additionalProperties": true
+}

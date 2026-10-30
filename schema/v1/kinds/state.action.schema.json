@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AlbertoMitroi/devos-intelligence-contract/schema/v1/kinds/state.action.schema.json",
+  "title": "Observation state.action (state management action)",
+  "type": "object",
+  "required": [
+    "kind",
+    "action",
+    "type",
+    "mechanism"
+  ],
+  "properties": {
+    "kind": {
+      "const": "state.action"
+    },
+    "action": {
+      "type": "string",
+      "pattern": "^ts:"
+    },
+    "type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mechanism": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

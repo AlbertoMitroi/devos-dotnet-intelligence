@@ -32,6 +32,32 @@
         "pattern": "^ev:[0-9a-f]{32}$"
       },
       "minItems": 1
+    },
+    "site": {
+      "type": "string",
+      "pattern": "^ev:[0-9a-f]{32}$",
+      "description": "v1.2: the evidence id (one of `evidence`) at the exact location of the fact; indexes take the observation's path and line from it."
+    },
+    "destinationParameter": {
+      "type": "object",
+      "description": "v1.2: the destination field of this observation is a parameter of the member that contains it; call sites carry the value in `call.argument` observations.",
+      "required": [
+        "field",
+        "parameter",
+        "ordinal"
+      ],
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "parameter": {
+          "type": "string"
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
   },
   "additionalProperties": true

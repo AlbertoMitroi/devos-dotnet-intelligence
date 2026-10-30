@@ -18,7 +18,8 @@ public sealed record AnalyzeOptions(
     bool Offline,
     string WorkBase,
     string NuGetPackagesDirectory,
-    IReadOnlyCollection<string> ExcludedPaths);
+    IReadOnlyCollection<string> ExcludedPaths,
+    IReadOnlyList<string>? InputGenerations = null);
 
 public sealed record AnalyzeOutcome(
     int ExitCode,
@@ -59,6 +60,17 @@ public static class AnalyzeRunner
         if (!IndexWriter.SqliteInfo().Fts5)
         {
             throw new InvalidOperationException("The bundled SQLite library does not support FTS5; index.sqlite cannot be written.");
+        }
+        // C7 basis generation: generations of the repositories that produce helpers, verified before they are read.
+        var inputTemplates = new List<DestinationTemplate>();
+        foreach (var input in options.InputGenerations ?? [])
+        {
+            var problems = GenerationVerifier.Verify(input);
+            if (problems.Count > 0)
+            {
+                throw new UsageException($"Input generation '{input}' does not verify: {problems[0]}");
+            }
+            inputTemplates.AddRange(CallArgumentAdapter.GenerationTemplates(input));
         }
         var generation = new GenerationWriter(options.Output);
         var workRoot = Path.Combine(options.WorkBase, "run-" + Guid.NewGuid().ToString("N"));
@@ -101,13 +113,14 @@ public static class AnalyzeRunner
             stage.Restart();
             events.Emit("stage.start", new JsonObject { ["stage"] = "adapters" });
             var conventions = Conventions.Load(options.ConfigPath);
-            var adapters = AdapterRunner.Run(analysis.Semantic, analysis.Contexts, analysis.Graph, analysis.Files, analysis.Identity, workingCopy.Files, conventions, cancellationToken);
+            var adapters = AdapterRunner.Run(analysis.Semantic, analysis.Contexts, analysis.Graph, analysis.Files, analysis.Identity, workingCopy.Files, conventions, cancellationToken,
+                inputTemplates);
             var suggestions = adapters.Suggestions;
             EndStage(events, stages, "adapters", stage);
 
             stage.Restart();
             events.Emit("stage.start", new JsonObject { ["stage"] = "links" });
-            var links = Linker.Link(analysis.Graph.Observations.ToList(), analysis.Projects);
+            var links = Linker.Link(analysis.Graph.Observations.ToList(), analysis.Projects, analysis.Graph.Relations);
             AddPackageUsage(analysis);
             EndStage(events, stages, "links", stage);
 
@@ -143,7 +156,7 @@ public static class AnalyzeRunner
             var graph = analysis.Graph;
             var diagnosticRecords = diagnostics.Select(d => d.ToJson()).GroupBy(d => (string)d["id"]!, StringComparer.Ordinal).Select(g => g.First()).ToList();
             generation.WriteNdjson("graph/projects.ndjson", analysis.Projects.Concat(analysis.Contexts)
-                .Concat(adapters.RepositoryContext is { } repositoryContext ? [repositoryContext] : []));
+                .Concat(adapters.RepositoryContext is { } repositoryContext ? [RepositoryScopeProject(repositoryContext), repositoryContext] : []));
             generation.WriteNdjson("graph/entities.ndjson", graph.Entities);
             generation.WriteNdjson("graph/declarations.ndjson", graph.Declarations);
             generation.WriteNdjson("graph/relations.ndjson", graph.Relations);
@@ -341,6 +354,27 @@ public static class AnalyzeRunner
             }).ToArray());
         }
     }
+
+    /// <summary>
+    /// The project record of the repository scope (project ".", D22): files outside every project (BPMN, Terraform) are
+    /// read in its analysis context, whose projectId must name a project record (3.6).
+    /// </summary>
+    private static JsonObject RepositoryScopeProject(JsonObject repositoryContext) => new()
+    {
+        ["id"] = (string)repositoryContext["projectId"]!,
+        ["recordType"] = "project",
+        ["path"] = AdapterRunner.RepositoryScope,
+        ["solutions"] = new JsonArray(),
+        ["assemblyName"] = null,
+        ["targetFrameworks"] = new JsonArray(),
+        ["resolvedSdk"] = null,
+        ["projectReferences"] = new JsonArray(),
+        ["packages"] = new JsonArray(),
+        ["packageId"] = null,
+        ["packageVersion"] = null,
+        ["isPackable"] = null,
+        ["ext.dotnet.scope"] = "repository",
+    };
 
     internal static string ProjectId(string path) => Hashing.RecordId("prj", new JsonObject { ["path"] = path });
 

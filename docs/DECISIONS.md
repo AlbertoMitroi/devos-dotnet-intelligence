@@ -213,12 +213,20 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 - **Choice:** (1) the index is written from the NDJSON files in id order, one transaction, `journal_mode = off`, page size 4096, no connection pooling; the file is then byte-identical across runs (measured) and is listed in the manifest like any file; the dump is compared as well. (2) Tables and columns of angular-intelligence are kept as they are; this engine adds `relation_evidence`, `observation_evidence`, `link_evidence` and `evidence_snippet` and three `meta` keys, proposed to the coordinator for the contract. (3) The location shown for an observation is its site: evidence inside a declaration of the entity it names, else the last evidence in source code, else the first. A contract field (`site`) is proposed instead.
 - **Reason:** a byte-stable file keeps `verify` and the manifest simple; shared tables let one consumer read both engines; the site rule shows the call, not the route group or `appsettings.json`.
 - **Revisit:** if the bundled SQLite changes its file format between architectures (the CI byte comparison would fail), list the dump's hash instead of the file's.
-- **Status:** accepted for this engine; the shared parts are a proposal.
+- **Status:** accepted; the shared parts became contract v1.2 (C5). Part (3), the site rule, is replaced by the `site` field (D27).
 
 ## D26: Context packs and wiki derived from the written records (step 4)
 
 - **Context:** 5.3 asks for a service card per project and contract cards; 5.4 for wiki pages per service and contract.
 - **Choice:** both are rendered from the NDJSON files just written (never from in-memory analysis state). Card paths stay `context/projects/<name>-<hash8>.md` (the context viewer reads them). Project kind comes from records only: `test` (references Microsoft.NET.Test.Sdk), `service` (serves endpoints, hubs or subscriptions), `host` (an entry point or an Aspire project resource), else `library`. Wiki service pages exist for services, hosts and every project on either side of a link between projects. Contracts: one per message contract identity and one per gRPC service. Lists stop at 40 items in cards and 200 in the wiki, with the count of omitted items and the query that returns them.
 - **Reason:** what an agent reads must be what `verify` checked; the viewer keeps working.
+- **Status:** accepted.
+
+## D27: Contract v1.2 in the engine (follow-up of step 4)
+
+- **Context:** contract v1.2.0 (C4 to C8) asks producers for `site`, the in-process dispatch rules and, optionally, call-site destination arguments. The federation found lab-core and lab-pricing generations with null package identity, a repository-scope context without a project record and an observation naming an entity without a record.
+- **Choice:** (1) `site` is the first evidence an adapter passes; the index-side site heuristic of D25 is removed. (2) Dispatch as C8 states it, plus one addition: an exact send without a handler of its own type links as `candidate` to open generic handlers whose constraint it satisfies, with a reason, instead of `unresolved`. (3) C7 with basis `source` (same run) and `generation` (`--input-generation`); `configured` is not implemented. Only SignalR method names are templates so far (`destinationParameter` on `realtime.send`). (4) Package identity: SDK 8 prints a workload notice on stdout before the JSON of `msbuild -getProperty`; the parser now starts at the JSON, and failed evaluations and packable projects without identity are diagnostics. (5) A project record for the repository scope (path `.`) and entity records for package symbols that only observations name.
+- **Reason:** the federation resolves packages to source and links across repositories from these fields; a stated site and stated dispatch rules remove guesses from every consumer.
+- **Revisit:** when other destination kinds (messaging destinations, HTTP routes) need templates, or when a caller convention should name helpers (`configured`).
 - **Status:** accepted.
 
