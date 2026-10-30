@@ -55,6 +55,11 @@ public static class AnalyzeRunner
             configurationHash = Hashing.Sha256Hex(await File.ReadAllBytesAsync(options.ConfigPath, cancellationToken).ConfigureAwait(false));
         }
 
+        // 5.2: the bundled SQLite must support FTS5 before any work starts.
+        if (!IndexWriter.SqliteInfo().Fts5)
+        {
+            throw new InvalidOperationException("The bundled SQLite library does not support FTS5; index.sqlite cannot be written.");
+        }
         var generation = new GenerationWriter(options.Output);
         var workRoot = Path.Combine(options.WorkBase, "run-" + Guid.NewGuid().ToString("N"));
         try
@@ -210,15 +215,20 @@ public static class AnalyzeRunner
                 ["coverage"] = coverage,
             };
 
-            var packs = ContextPackWriter.Render(new ContextPackWriter.Input(
-                manifest,
-                analysis.Projects.OrderBy(p => (string)p["path"]!, StringComparer.Ordinal).ToList(),
-                contexts,
-                graph.Entities.ToList(),
-                graph.Declarations.ToList(),
-                graph.Relations.ToList(),
-                diagnosticRecords.OrderBy(d => (string)d["id"]!, StringComparer.Ordinal).ToList()));
-            foreach (var (path, content) in packs)
+            // 5.2: the index is derived from the NDJSON files just written (the source of truth).
+            IndexWriter.Write(generation.Root, generation.Reserve(IndexWriter.FileName), new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["schemaVersion"] = EngineInfo.SchemaVersion,
+                ["indexSchema"] = IndexWriter.SchemaVersion,
+                ["commit"] = workingCopy.Commit,
+                ["engine"] = $"{EngineInfo.Name}@{EngineInfo.Version}",
+                ["status"] = status,
+                ["coverage"] = CanonicalJson.Serialize(coverage["summary"]),
+            });
+
+            // 5.3, 5.4: context packs and wiki, from the records just written.
+            var model = ServiceModel.Load(generation.Root, manifest);
+            foreach (var (path, content) in ContextPackWriter.Render(model).Concat(WikiWriter.Render(model)))
             {
                 generation.WriteBytes(path, System.Text.Encoding.UTF8.GetBytes(content));
             }

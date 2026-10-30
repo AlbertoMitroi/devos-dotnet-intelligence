@@ -64,3 +64,14 @@ observations:
       ext.dotnet.style: conventional
       at: src/Web/Controllers.cs:20
 links: []
+queries:
+  - query: routes --route /api/v1
+    exitCode: 0
+    lines:
+      - "GET /api/v1/items  (no handler)  src/Web/Program.cs:9"
+      - "POST /api/v1/items/{}  (no handler)  src/Web/Program.cs:10"
+  - query: endpoints
+    exitCode: 0
+    lines:
+      - "GET /api/orders/{}  M:Web.OrdersController.Get(System.Int32)  src/Web/Controllers.cs:9"
+      - "HEAD /health  (no handler)  src/Web/Program.cs:11"

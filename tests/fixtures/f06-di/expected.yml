@@ -94,3 +94,15 @@ links:
   - di consumes_contract exact src/App/Services.cs:15 -> src/App/Program.cs:10
   - di consumes_contract exact src/App/Program.cs:19 -> src/App/Program.cs:8
   - http configured_route unresolved src/App/Services.cs:25 -> null
+queries:
+  - query: di App.IRepository
+    exitCode: 0
+    lines:
+      - "registers  scope scoped  impl dotnet:src/App/App.csproj:T:App.Repository  src/App/Program.cs:7"
+      - "consumes   dotnet:src/App/App.csproj:M:App.Reporter.#ctor(Lib.IClock,App.IRepository) via primaryConstructor  src/App/Services.cs:10"
+  - query: refs App.Repository
+    exitCode: 0
+    lines:
+      - "src/App/Program.cs:7"
+      - "builder.Services.AddScoped<IRepository, Repository>();"
+      - "src/App/Program.cs:16"

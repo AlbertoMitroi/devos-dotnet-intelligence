@@ -70,7 +70,26 @@ foreach ($repo in Get-ChildItem -Directory (Join-Path $work 'repos')) {
     Invoke-Docker @('run', '--rm', '--entrypoint', 'diff', '-v', "$(Join-Path $work 'out'):/runs:ro", $tag, '-r', '-x', 'run.json', "/runs/$name-1", "/runs/$name-2")
     Write-Host "${name}: two runs identical"
     Invoke-Docker @('run', '--rm', '-v', "$(Join-Path $work 'out'):/runs:ro", $tag, 'verify', "/runs/$name-1")
+    # The canonical index dump, compared across architectures by CI with the generations (G4.2).
+    $dump = & docker run --rm -v "$(Join-Path $work 'out'):/runs:ro" $tag query "/runs/$name-1" dump
+    if ($LASTEXITCODE -ne 0) { throw "query dump $name failed with exit code $LASTEXITCODE" }
+    [System.IO.File]::WriteAllText((Join-Path $work "out/$name.index-dump"), (($dump -join "`n") + "`n"))
 }
+
+Step 'query and tampered copy'
+$http = & docker run --rm -v "$(Join-Path $work 'out'):/runs:ro" $tag query /runs/f08-http-aspire-1 http
+if ($LASTEXITCODE -ne 0) { throw "query http exit code $LASTEXITCODE" }
+$http | Write-Host
+if (-not ($http -contains '    -> exact GET /api/items/by  src/Catalog/Program.cs:4')) { throw 'query http lacks the exact link to /api/items/by' }
+& docker run --rm -v "$(Join-Path $work 'out'):/runs:ro" $tag query /runs/f03-same-name-1 symbol Widget | Out-Null
+if ($LASTEXITCODE -ne 3) { throw "query symbol Widget: exit code $LASTEXITCODE, expected 3" }
+$tampered = Join-Path $work 'tampered'
+Copy-Item -Recurse (Join-Path $work 'out/f00-minimal-1') $tampered
+Add-Content -NoNewline -Path (Join-Path $tampered 'context/overview.md') -Value 'x'
+& docker run --rm -v "${tampered}:/g:ro" $tag verify /g 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 50) { throw "verify on a tampered copy: exit code $LASTEXITCODE, expected 50" }
+Remove-Item -Recurse -Force $tampered
+Write-Host 'query answers; verify rejects a tampered copy'
 
 Step 'GitHub Action mode'
 $workspace = Join-Path $work 'workspace'

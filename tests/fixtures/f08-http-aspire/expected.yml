@@ -50,3 +50,15 @@ links:
   - http configured_route candidate src/Store/CatalogClient.cs:7 -> src/Catalog/Program.cs:3
   - http configured_route exact src/Store/CatalogClient.cs:9 -> src/Catalog/Program.cs:4
   - http configured_route unresolved src/Store/CatalogClient.cs:11 -> null
+queries:
+  - query: http
+    exitCode: 0
+    lines:
+      - "GET /api/items/by  exact  src/Store/CatalogClient.cs:9"
+      - "-> exact GET /api/items/by  src/Catalog/Program.cs:4"
+      - "-> unresolved: No endpoint of src/Catalog/Catalog.csproj matches GET /api/nothing."
+  - query: calls-to /api/items
+    exitCode: 0
+    lines:
+      - "GET /api/items/{}  <- candidate  http.call src/Store/CatalogClient.cs:7"
+      - "GET /api/items/by  <- exact  http.call src/Store/CatalogClient.cs:9"

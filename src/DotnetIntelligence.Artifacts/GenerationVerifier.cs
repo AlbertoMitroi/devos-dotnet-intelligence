@@ -197,6 +197,7 @@ public static class GenerationVerifier
                 Error($"evidence {id}: '{path}' at blob {blob} is not in the analysed commit");
             }
         }
+        errors.AddRange(VerifyIndex(root, records).Take(MaxReportedErrors - errors.Count));
         return errors;
 
         void Require(HashSet<string> set, string? id, string what)
@@ -263,6 +264,58 @@ public static class GenerationVerifier
         }
         errors.AddRange(VerifyRecords(root, null, (string?)manifest["objectFormat"] ?? "sha1"));
         return errors;
+    }
+
+    /// <summary>
+    /// index.sqlite is derived data (5.2): when present it must carry the index schema this engine reads, and one row
+    /// per record of each mirrored file. Checksums cover its bytes; this covers an index built from other records.
+    /// </summary>
+    private static IEnumerable<string> VerifyIndex(string root, Dictionary<string, List<JsonObject>> records)
+    {
+        var path = Path.Combine(root, IndexWriter.FileName);
+        if (!File.Exists(path))
+        {
+            yield break;
+        }
+        var problems = new List<string>();
+        try
+        {
+            using var connection = IndexWriter.Open(path, readOnly: true);
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "select value from meta where key = 'indexSchema'";
+                if (command.ExecuteScalar() as string != IndexWriter.SchemaVersion)
+                {
+                    problems.Add($"{IndexWriter.FileName}: meta.indexSchema is not {IndexWriter.SchemaVersion}");
+                }
+            }
+            var expected = new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                ["entities"] = records["graph/entities.ndjson"].Count,
+                ["declarations"] = records["graph/declarations.ndjson"].Count,
+                ["relations"] = records["graph/relations.ndjson"].Count,
+                ["evidence"] = records["graph/evidence.ndjson"].Count,
+                ["observations"] = records["graph/observations.ndjson"].Count,
+                ["links"] = records["graph/links.ndjson"].Count,
+                ["diagnostics"] = records["graph/diagnostics.ndjson"].Count,
+                ["projects"] = records["graph/projects.ndjson"].Count,
+            };
+            foreach (var (table, count) in IndexDump.Counts(connection, expected.Keys))
+            {
+                if (count != expected[table])
+                {
+                    problems.Add($"{IndexWriter.FileName}: table {table} has {count} rows, the graph has {expected[table]} records");
+                }
+            }
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException ex)
+        {
+            problems.Add($"{IndexWriter.FileName}: not a readable index ({ex.Message})");
+        }
+        foreach (var problem in problems)
+        {
+            yield return problem;
+        }
     }
 
     private static HashSet<string> Ids(IEnumerable<JsonObject> records) => records.Select(r => (string)r["id"]!).ToHashSet(StringComparer.Ordinal);

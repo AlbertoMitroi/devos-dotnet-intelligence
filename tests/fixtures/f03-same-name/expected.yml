@@ -10,3 +10,9 @@ declarations:
   - entity: src/Beta/Beta.csproj|T:Shared.Widget
     at: [src/Beta/Widget.cs:3]
 links: []
+queries:
+  - query: symbol Widget
+    exitCode: 3
+    lines:
+      - "dotnet:src/Alpha/Alpha.csproj:T:Shared.Widget"
+      - "dotnet:src/Beta/Beta.csproj:T:Shared.Widget"

@@ -206,3 +206,19 @@ Format per entry: context, options, choice, reason, how to revisit. Status `prop
 - **Reason:** scoped to the tools the engine runs, no change to system files, one small package.
 - **Revisit:** when a later SDK 8 NuGet no longer needs a user entry, or when SDK 8 leaves the image.
 - **Status:** accepted.
+
+## D25: index.sqlite in the manifest, shared schema, one site per observation (step 4)
+
+- **Context:** 5.2 allows the SQLite file to differ between runs as long as its canonical dump does not; the manifest lists every file with its SHA-256 and must itself be deterministic. One MCP server reads the indexes of both engines. Observations carry several pieces of evidence (route groups, configuration, registrations) without saying which one is the site.
+- **Choice:** (1) the index is written from the NDJSON files in id order, one transaction, `journal_mode = off`, page size 4096, no connection pooling; the file is then byte-identical across runs (measured) and is listed in the manifest like any file; the dump is compared as well. (2) Tables and columns of angular-intelligence are kept as they are; this engine adds `relation_evidence`, `observation_evidence`, `link_evidence` and `evidence_snippet` and three `meta` keys, proposed to the coordinator for the contract. (3) The location shown for an observation is its site: evidence inside a declaration of the entity it names, else the last evidence in source code, else the first. A contract field (`site`) is proposed instead.
+- **Reason:** a byte-stable file keeps `verify` and the manifest simple; shared tables let one consumer read both engines; the site rule shows the call, not the route group or `appsettings.json`.
+- **Revisit:** if the bundled SQLite changes its file format between architectures (the CI byte comparison would fail), list the dump's hash instead of the file's.
+- **Status:** accepted for this engine; the shared parts are a proposal.
+
+## D26: Context packs and wiki derived from the written records (step 4)
+
+- **Context:** 5.3 asks for a service card per project and contract cards; 5.4 for wiki pages per service and contract.
+- **Choice:** both are rendered from the NDJSON files just written (never from in-memory analysis state). Card paths stay `context/projects/<name>-<hash8>.md` (the context viewer reads them). Project kind comes from records only: `test` (references Microsoft.NET.Test.Sdk), `service` (serves endpoints, hubs or subscriptions), `host` (an entry point or an Aspire project resource), else `library`. Wiki service pages exist for services, hosts and every project on either side of a link between projects. Contracts: one per message contract identity and one per gRPC service. Lists stop at 40 items in cards and 200 in the wiki, with the count of omitted items and the query that returns them.
+- **Reason:** what an agent reads must be what `verify` checked; the viewer keeps working.
+- **Status:** accepted.
+

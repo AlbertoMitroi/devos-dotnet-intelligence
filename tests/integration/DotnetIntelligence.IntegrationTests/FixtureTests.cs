@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using DotnetIntelligence.Artifacts;
 using DotnetIntelligence.Cli;
 using YamlDotNet.RepresentationModel;
 
@@ -54,8 +55,42 @@ public class FixtureTests : IDisposable
                 new Dictionary<string, string?> { ["DI_WORK"] = _repos.NewDirectory($"work-{runIndex}") }, CancellationToken.None);
             var label = (string?)run["config"] is { } c ? $"[with {c}] " : string.Empty;
             failures.AddRange(FixtureComparer.Compare(run, code, output, stderr.ToString()).Select(f => label + f));
+            if (File.Exists(Path.Combine(output, "manifest.json")))
+            {
+                // G4.3: every fixture generation passes verify.
+                failures.AddRange(GenerationVerifier.Verify(output).Select(e => $"{label}verify: {e}"));
+                // G4.4: the fixture questions, answered by query with path:line evidence.
+                failures.AddRange((await QueryFailuresAsync(run, output)).Select(f => label + f));
+            }
         }
         Assert.True(failures.Count == 0, $"{fixture}:\n  " + string.Join("\n  ", failures));
+    }
+
+    /// <summary>"queries:" in expected.yml: each query's exit code and the lines its text output must contain.</summary>
+    private static async Task<List<string>> QueryFailuresAsync(JsonObject run, string output)
+    {
+        var failures = new List<string>();
+        foreach (var item in run["queries"]?.AsArray().Select(q => q!.AsObject()) ?? [])
+        {
+            var query = (string)item["query"]!;
+            var stdout = new StringWriter();
+            var stderr = new StringWriter();
+            var code = await CommandLine.RunAsync(["query", output, .. query.Split(' ', StringSplitOptions.RemoveEmptyEntries)], stdout, stderr,
+                new Dictionary<string, string?>(), CancellationToken.None);
+            var text = stdout.ToString();
+            if ((string?)item["exitCode"] is { } expectedCode && int.Parse(expectedCode, System.Globalization.CultureInfo.InvariantCulture) != code)
+            {
+                failures.Add($"query '{query}': exit code {code}, expected {expectedCode}. Output: {text.Trim()} {stderr.ToString().Trim()}");
+            }
+            foreach (var line in item["lines"]?.AsArray().Select(l => (string)l!) ?? [])
+            {
+                if (!text.Contains(line, StringComparison.Ordinal))
+                {
+                    failures.Add($"query '{query}': output does not contain '{line}'. Output:\n{text}");
+                }
+            }
+        }
+        return failures;
     }
 }
 

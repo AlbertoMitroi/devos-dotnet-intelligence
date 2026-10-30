@@ -44,6 +44,8 @@ Generated from the `packages.lock.json` files and each package's nuspec by `scri
 | Microsoft.CodeAnalysis.CSharp.Workspaces | 5.9.0 | direct | MIT |
 | Microsoft.CodeAnalysis.Workspaces.Common | 5.9.0 | transitive | MIT |
 | Microsoft.CodeAnalysis.Workspaces.MSBuild | 5.9.0 | direct | MIT |
+| Microsoft.Data.Sqlite | 10.0.14 | direct | MIT |
+| Microsoft.Data.Sqlite.Core | 10.0.14 | transitive | MIT |
 | Microsoft.Extensions.DependencyInjection | 10.0.1 | transitive | MIT |
 | Microsoft.Extensions.DependencyInjection.Abstractions | 10.0.1 | transitive | MIT |
 | Microsoft.Extensions.Logging | 10.0.1 | transitive | MIT |
@@ -56,6 +58,10 @@ Generated from the `packages.lock.json` files and each package's nuspec by `scri
 | Microsoft.Testing.Platform.MSBuild | 2.5.1 | transitive | MIT |
 | Microsoft.VisualStudio.SolutionPersistence | 1.0.52 | transitive | MIT |
 | Microsoft.Win32.Registry | 5.0.0 | transitive | MIT |
+| SQLitePCLRaw.bundle_e_sqlite3 | 2.1.13 | transitive | Apache-2.0 |
+| SQLitePCLRaw.core | 2.1.13 | transitive | Apache-2.0 |
+| SQLitePCLRaw.lib.e_sqlite3 | 2.1.13 | transitive | Apache-2.0 |
+| SQLitePCLRaw.provider.e_sqlite3 | 2.1.13 | transitive | Apache-2.0 |
 | System.Composition | 10.0.1 | transitive | MIT |
 | System.Composition.AttributedModel | 10.0.1 | transitive | MIT |
 | System.Composition.Convention | 10.0.1 | transitive | MIT |

@@ -136,6 +136,25 @@ internal static partial class FixtureComparer
             CompareSets(failures, "links", expectedLinks.Select(l => (string)l!), actual);
         }
 
+        // G4.1: every link keeps the evidence of both sides (5.1).
+        var observationsById = observations.ToDictionary(o => (string)o["id"]!, StringComparer.Ordinal);
+        foreach (var link in Read(output, "graph/links.ndjson"))
+        {
+            var linkEvidence = link["evidence"]!.AsArray().Select(e => (string)e!).ToHashSet(StringComparer.Ordinal);
+            foreach (var side in new[] { link["from"], link["to"] }.OfType<JsonObject>())
+            {
+                if (!observationsById.TryGetValue((string)side["observation"]!, out var observation))
+                {
+                    continue;
+                }
+                var missing = observation["evidence"]!.AsArray().Select(e => (string)e!).Where(e => !linkEvidence.Contains(e)).ToList();
+                if (missing.Count > 0)
+                {
+                    failures.Add($"link {link["id"]} lacks {missing.Count} evidence of its {(side == link["from"] ? "from" : "to")} side");
+                }
+            }
+        }
+
         foreach (var secret in expected["secretsAbsent"]?.AsArray().Select(s => (string)s!) ?? [])
         {
             foreach (var file in Directory.EnumerateFiles(output, "*", SearchOption.AllDirectories))

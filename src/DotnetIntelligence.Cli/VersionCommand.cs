@@ -29,8 +29,15 @@ public static class VersionCommand
                 ["name"] = r.Name,
                 ["version"] = r.Version,
             }).ToArray()),
+            ["sqlite"] = SqliteJson(),
             ["imageDigest"] = EngineInfo.ImageDigest(environment),
         };
+    }
+
+    public static JsonObject SqliteJson()
+    {
+        var (version, fts5) = Artifacts.IndexWriter.SqliteInfo();
+        return new JsonObject { ["version"] = version, ["fts5"] = fts5 };
     }
 
     public static JsonObject RoslynJson(RoslynVersion roslyn) => new()
