@@ -37,6 +37,20 @@
 - The action image runs as root, as GitHub requires for Docker container actions (D16). The engine hands the output and cache directories back to the owner of the workspace when it finishes.
 - Diagnostics with severity warning or error appear as workflow annotations.
 
+## Publishing the generation (OCI)
+
+The engine never uploads anything. [`examples/workflows/analyze-and-push-oci.yml`](../examples/workflows/analyze-and-push-oci.yml) shows how a caller pushes each generation to a registry with ORAS. The layout is shared with angular-intelligence, so one consumer reads both:
+
+| Part | Value |
+|---|---|
+| Reference | `ghcr.io/<owner>/context-<repository>:<commit sha>-dotnet`, plus the moving tag `main-dotnet`; lowercase. The engine suffix keeps two engines that analyze one repository at one commit from overwriting each other's tags. |
+| Manifest `artifactType` | `application/vnd.devos.intelligence.generation.v1` |
+| Layer | one file, `generation.tar.gz` (`org.opencontainers.image.title`), media type `application/vnd.devos.intelligence.generation.v1.tar+gzip`; the tar root is the generation directory (`./manifest.json`); entries sorted, mtime 0, owner and group 0, gzip without timestamp, so the same generation gives the same bytes |
+| Layer annotation | `dev.devos.intelligence.manifest-sha256`: SHA-256 (lowercase hex) of `manifest.json` inside the tar |
+| Manifest annotations | `org.opencontainers.image.source` (repository URL), `org.opencontainers.image.revision` (commit), `org.opencontainers.image.ref.name` (`refs/heads/main`), `dev.devos.intelligence.engine` (`dotnet-intelligence`); ORAS adds `org.opencontainers.image.created` |
+
+The engine version is not an annotation: it is in `manifest.json`. A consumer pulls, checks the layer against `dev.devos.intelligence.manifest-sha256` and runs `verify` on the unpacked directory. GHCR creates a new package as private: pulling needs a token with `read:packages` until the owner makes the package public.
+
 ## docker run
 
 ```bash

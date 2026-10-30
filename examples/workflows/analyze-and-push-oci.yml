@@ -1,7 +1,7 @@
 # Checkout → dotnet-intelligence → push the generation as an OCI artifact.
 # Publishing is the caller's choice; the engine itself never uploads anything.
 #
-# Reference: ghcr.io/<owner>/context-<repository>:<commit sha>, plus a moving :main.
+# Reference: ghcr.io/<owner>/context-<repository>:<commit sha>-<engine>, plus a moving :main-<engine>.
 # The artifact type and layer media type are engine-neutral (shared with angular-intelligence);
 # the engine and its version are in manifest.json inside the layer. The manifest carries the
 # repository and the commit as annotations, so a consumer can check them before unpacking.
@@ -40,6 +40,7 @@ jobs:
       - name: Push the generation with ORAS
         shell: bash
         env:
+          ENGINE: dotnet
           GENERATION: ${{ steps.intelligence.outputs.generation-path }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,12 +49,13 @@ jobs:
         run: |
           # Same generation, same bytes: sorted entries, fixed times and owners, no gzip timestamp.
           tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C "$GENERATION" -cf - . | gzip -n > generation.tar.gz
+          jq -n --arg source "$GITHUB_SERVER_URL/$REPOSITORY" --arg revision "$GITHUB_SHA" --arg ref "$GITHUB_REF" \
+            --arg engine "$ENGINE-intelligence" --arg manifest "$(sha256sum "$GENERATION/manifest.json" | cut -d ' ' -f 1)" \
+            '{"$manifest": {"org.opencontainers.image.source": $source, "org.opencontainers.image.revision": $revision,
+                            "org.opencontainers.image.ref.name": $ref, "dev.devos.intelligence.engine": $engine},
+              "generation.tar.gz": {"dev.devos.intelligence.manifest-sha256": $manifest}}' > annotations.json
           echo "$REGISTRY_TOKEN" | docker run --rm -i -v "$PWD:/work" -w /work \
             ghcr.io/oras-project/oras:v1.3.6@sha256:9cfb578be975b762fd898b9d004243d8003aeb807a3e15b2ed212cdd1326c9eb \
-            push "${TARGET,,}:$GITHUB_SHA,main" -u "$REGISTRY_USER" --password-stdin \
-            --artifact-type application/vnd.devos.intelligence.generation.v1 \
-            --annotation "org.opencontainers.image.source=$GITHUB_SERVER_URL/$REPOSITORY" \
-            --annotation "org.opencontainers.image.revision=$GITHUB_SHA" \
-            --annotation "org.opencontainers.image.ref.name=$GITHUB_REF" \
-            --annotation "io.github.albertomitroi.devos.engine=dotnet-intelligence" \
+            push "${TARGET,,}:$GITHUB_SHA-$ENGINE,main-$ENGINE" -u "$REGISTRY_USER" --password-stdin \
+            --artifact-type application/vnd.devos.intelligence.generation.v1 --annotation-file annotations.json \
             generation.tar.gz:application/vnd.devos.intelligence.generation.v1.tar+gzip
